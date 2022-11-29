@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/iparse.iml" filepath="$PROJECT_DIR$/iparse.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../openformula/openformula.iml" filepath="$PROJECT_DIR$/../openformula/openformula.iml" />
+    </modules>
+  </component>
+</project>
