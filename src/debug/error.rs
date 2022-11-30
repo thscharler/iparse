@@ -32,7 +32,12 @@ fn debug_parse_of_error_short<'s, C: Code>(
     f: &mut impl fmt::Write,
     err: &ParserError<'s, C>,
 ) -> fmt::Result {
-    write!(f, "ParseOFError {} \"{}\"", err.code, err.span)?;
+    write!(f, "ParserError {} \"{}\"", err.code, err.span)?;
+    if !err.nom.is_empty() {
+        for n in &err.nom {
+            write!(f, " {:?}:\"{}\"", n.kind, n.span)?;
+        }
+    }
     if !err.expect.is_empty() {
         write!(f, "expect=")?;
         debug_expect2_short(f, &err.expect, 1)?;
@@ -49,7 +54,12 @@ fn debug_parse_of_error_medium<'s, C: Code>(
     f: &mut impl fmt::Write,
     err: &ParserError<'s, C>,
 ) -> fmt::Result {
-    writeln!(f, "ParseOFError {} \"{}\"", err.code, err.span)?;
+    writeln!(f, "ParserError {} \"{}\"", err.code, err.span)?;
+    if !err.nom.is_empty() {
+        for n in &err.nom {
+            write!(f, " {:?}:\"{}\"", n.kind, n.span)?;
+        }
+    }
     if !err.expect.is_empty() {
         let mut sorted = err.expect.clone();
         sorted.reverse();
@@ -118,7 +128,12 @@ fn debug_parse_of_error_long<'s, C: Code>(
     f: &mut impl fmt::Write,
     err: &ParserError<'s, C>,
 ) -> fmt::Result {
-    writeln!(f, "ParseOFError {} \"{}\"", err.code, err.span)?;
+    writeln!(f, "ParserError {} \"{}\"", err.code, err.span)?;
+    if !err.nom.is_empty() {
+        for n in &err.nom {
+            write!(f, " {:?}:\"{}\"", n.kind, n.span)?;
+        }
+    }
     if !err.expect.is_empty() {
         let mut sorted = err.expect.clone();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));

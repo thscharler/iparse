@@ -1,7 +1,12 @@
 use crate::{Code, Span};
+use nom::error::ErrorKind;
+use nom::IResult;
 use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
+
+/// Type alias for a nom parser. Use this to create a ParserError directly in nom.
+pub type ParserNomResult<'s, C> = IResult<Span<'s>, Span<'s>, ParserError<'s, C>>;
 
 /// Error for the Parser.
 pub struct ParserError<'s, C: Code> {
@@ -11,6 +16,8 @@ pub struct ParserError<'s, C: Code> {
     pub span: Span<'s>,
     /// Flag for Tracer.
     pub tracing: bool,
+    /// Collected nom errors if any.
+    pub nom: Vec<Nom<'s>>,
     /// Suggest values.
     pub suggest: Vec<Suggest<'s, C>>,
     /// Expect values.
@@ -24,6 +31,7 @@ impl<'s, C: Code> ParserError<'s, C> {
             code,
             span,
             tracing: false,
+            nom: Vec::new(),
             suggest: Vec::new(),
             expect: Vec::new(),
         }
@@ -37,6 +45,16 @@ impl<'s, C: Code> ParserError<'s, C> {
     /// Error code of the parser.
     pub fn is_parser(&self) -> bool {
         !self.code.is_special()
+    }
+
+    /// Is this one of the nom errorkind codes?
+    pub fn is_kind(&self, kind: ErrorKind) -> bool {
+        for n in &self.nom {
+            if n.kind == kind {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// Was this one of the expected errors.
@@ -100,6 +118,51 @@ impl<'s, C: Code> Display for ParserError<'s, C> {
 
 impl<'s, C: Code> Error for ParserError<'s, C> {}
 
+/// Coop with nom.
+impl<'s, C: Code> nom::error::ParseError<Span<'s>> for ParserError<'s, C> {
+    fn from_error_kind(span: Span<'s>, kind: ErrorKind) -> Self {
+        ParserError {
+            code: C::NOM_ERROR,
+            span,
+            tracing: false,
+            nom: vec![Nom { kind, span }],
+            suggest: Vec::new(),
+            expect: Vec::new(),
+        }
+    }
+
+    fn append(input: Span<'s>, kind: ErrorKind, mut other: Self) -> Self {
+        other.nom.push(Nom { kind, span: input });
+        other
+    }
+}
+
+impl<'s, C> From<nom::Err<ParserError<'s, C>>> for ParserError<'s, C>
+where
+    C: Code,
+{
+    fn from(e: nom::Err<ParserError<'s, C>>) -> Self {
+        match e {
+            Err::Error(e) => e,
+            Err::Failure(e) => e,
+            Err::Incomplete(_) => unreachable!(),
+        }
+    }
+}
+
+impl<'s, C> From<nom::Err<nom::error::Error<Span<'s>>>> for ParserError<'s, C>
+where
+    C: Code,
+{
+    fn from(e: nom::Err<nom::error::Error<Span<'s>>>) -> Self {
+        match e {
+            nom::Err::Error(e) => ParserError::new(C::NOM_ERROR, e.input),
+            nom::Err::Failure(e) => ParserError::new(C::NOM_FAILURE, e.input),
+            nom::Err::Incomplete(_) => unreachable!(),
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DebugWidth {
     /// Debug flag, can be set with width=0.
@@ -108,6 +171,15 @@ pub enum DebugWidth {
     Medium,
     /// Debug flag, can be set with width=2.
     Long,
+}
+
+/// Data gathered from nom.
+#[derive(Clone)]
+pub struct Nom<'s> {
+    /// Errorkind ala nom
+    pub kind: ErrorKind,
+    /// Span
+    pub span: Span<'s>,
 }
 
 /// Suggestions, optional tokens.

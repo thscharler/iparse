@@ -34,7 +34,7 @@ where
     C: Code,
 {
     /// Maps some error and adds the information of the span where the error occured.
-    fn parser_error(self, span: Span<'s>) -> Result<T, error::ParserError<'s, C>>;
+    fn parse_err(self, span: Span<'s>) -> Result<T, error::ParserError<'s, C>>;
 }
 
 /// Result of a look-ahead. Can be chained with | (bit-or).
