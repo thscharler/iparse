@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/iparse.iml" filepath="$PROJECT_DIR$/iparse.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../openformula/openformula.iml" filepath="$PROJECT_DIR$/../openformula/openformula.iml" />
     </modules>
   </component>
 </project>

@@ -10,22 +10,6 @@
   <component name="ChangeListManager">
     <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="transfer test framework from openformula.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/ast.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/ast.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/ast/debug_ast.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/ast/debug_ast.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/conv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/conv.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/iparse.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/parser.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/parser.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/tokens.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/tokens.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/tokens/nomtokens.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/tokens/nomtokens.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/tests/spantest/mod.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/tests/spantest/test_framework.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/tests/spantest/trait_based.rs" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -158,7 +142,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669786525354</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="transfer test framework from openformula.">
+      <created>1669787841822</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1669787841822</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -169,6 +160,13 @@
             <State>
               <option name="FILTERS">
                 <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="master" />
+                      </list>
+                    </value>
+                  </entry>
                   <entry key="roots">
                     <value>
                       <list>
