@@ -6,6 +6,7 @@ pub mod span;
 pub mod test;
 pub mod tracer;
 
+use crate::tracer::Track;
 use nom_locate::LocatedSpan;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -125,13 +126,13 @@ pub trait Tracer<'s, C: Code> {
     fn err<T>(&'_ self, err: error::ParserError<'s, C>) -> ParserResult<'s, T, C>;
 
     /// Write a debug output of the Tracer state.
-    fn write<'a, 'b>(
-        &'a self,
+    fn write(
+        &self,
         o: &mut impl fmt::Write,
         w: error::DebugWidth,
-        filter: FilterFn<'b, 's, C>,
+        filter: FilterFn<'_, C>,
     ) -> fmt::Result;
 }
 
 /// Filter type for Tracer::write_debug
-pub type FilterFn<'a, 's, C> = &'a dyn for<'t> Fn(&'t tracer::Track<'s, C>) -> bool;
+pub type FilterFn<'a, C> = &'a dyn Fn(&Track<'_, C>) -> bool;

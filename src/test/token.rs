@@ -17,12 +17,13 @@ where
     ///
     /// Finish the test with q().
     pub fn token(span: &'s str, fn_test: TokenFn<'s, O, C>) -> Self {
-        Self::run(span, fn_test, &|| ())
+        Self::run(span, fn_test)
     }
 }
 
 impl<'s, P, O, C> Test<P, Span<'s>, O, ParserError<'s, C>>
 where
+    P: Default,
     O: Debug,
     C: Code,
 {

@@ -14,13 +14,14 @@ where
 {
     /// Run a test for a nom parser.
     pub fn nom(span: &'s str, fn_test: NomFn<'s, O>) -> Self {
-        Self::run(span, fn_test, &|| ())
+        Self::run(span, fn_test)
     }
 }
 
 // works for any NomFn.
 impl<'s, P, O> Test<P, Span<'s>, (Span<'s>, O), nom::Err<nom::error::Error<Span<'s>>>>
 where
+    P: Default,
     O: Debug,
 {
     /// Test for a nom error that occurred.
@@ -56,7 +57,7 @@ impl<'a> TestSpan for IResult<Span<'a>, Span<'a>> {
             }
             Err(e) => {
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self
@@ -73,12 +74,12 @@ impl<'a> TestSpanPair for IResult<Span<'a>, (Option<Span<'a>>, Span<'a>)> {
                     test.ok(offset, fragment);
                 } else {
                     println!("Was None, should be {} '{}'", offset, fragment);
-                    assert!(false);
+                    panic!();
                 }
             }
             Err(e) => {
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self
@@ -99,7 +100,7 @@ impl<'a> TestSpanPair for IResult<Span<'a>, (Option<Span<'a>>, Span<'a>)> {
             }
             Err(e) => {
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self
@@ -114,7 +115,7 @@ impl<'a> TestSpanPair for IResult<Span<'a>, (Option<Span<'a>>, Span<'a>)> {
             }
             Err(e) => {
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self
@@ -129,7 +130,7 @@ impl<'a> TestFail<nom::error::ErrorKind> for IResult<Span<'a>, Span<'a>> {
             Ok((rest, token)) => {
                 println!("Ok, but should have failed:");
                 println!("    rest='{}' token='{}'", rest, token);
-                assert!(false);
+                panic!();
             }
             Err(nom::Err::Error(e)) => {
                 if e.code != kind {
@@ -140,18 +141,18 @@ impl<'a> TestFail<nom::error::ErrorKind> for IResult<Span<'a>, Span<'a>> {
                         e.code,
                         kind
                     );
-                    assert!(false);
+                    panic!();
                 }
             }
             Err(e @ nom::Err::Failure(_)) => {
                 println!("Failed with Err:Failure");
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
             Err(e @ nom::Err::Incomplete(_)) => {
                 println!("Failed with Err:Incomplete");
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self
@@ -179,7 +180,7 @@ impl<'a> TestFail<nom::error::ErrorKind> for IResult<Span<'a>, (Option<Span<'a>>
             Ok((rest, token)) => {
                 println!("Ok, but should have failed:");
                 println!("    rest='{}' token='{:?}'", rest, token);
-                assert!(false);
+                panic!();
             }
             Err(nom::Err::Error(e)) => {
                 if e.code != kind {
@@ -190,18 +191,18 @@ impl<'a> TestFail<nom::error::ErrorKind> for IResult<Span<'a>, (Option<Span<'a>>
                         e.code,
                         kind
                     );
-                    assert!(false);
+                    panic!();
                 }
             }
             Err(e @ nom::Err::Failure(_)) => {
                 println!("Failed with Err:Failure");
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
             Err(e @ nom::Err::Incomplete(_)) => {
                 println!("Failed with Err:Incomplete");
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self

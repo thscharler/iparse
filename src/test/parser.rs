@@ -1,7 +1,7 @@
 use crate::error::{DebugWidth, ParserError};
 use crate::test::{Report, Test, TestFail, TestSpan, TestSpanPair};
 use crate::tracer::{CTracer, Track};
-use crate::{Code, ParserResult, Span, Tracer};
+use crate::{Code, FilterFn, ParserResult, Span, Tracer};
 use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::fmt::Debug;
@@ -11,13 +11,26 @@ use std::time::Instant;
 pub type ParserFn<'s, O, C> = fn(&'_ CTracer<'s, C>, Span<'s>) -> ParserResult<'s, O, C>;
 
 /// Extra data for the parser fn.
-pub struct TestTracer<'s, C: Code> {
+pub struct TestTracer<'a, 's, C: Code> {
     pub trace: CTracer<'s, C>,
-    pub trace_filter: RefCell<&'s dyn Fn(&Track<'_, C>) -> bool>,
+    pub trace_filter: RefCell<FilterFn<'a, C>>,
+}
+
+fn no_filter<'s, C: Code>(_: &Track<'s, C>) -> bool {
+    true
+}
+
+impl<'a, 's, C: Code> Default for TestTracer<'a, 's, C> {
+    fn default() -> Self {
+        Self {
+            trace: CTracer::new(),
+            trace_filter: RefCell::new(&no_filter),
+        }
+    }
 }
 
 // matches a ParserFn
-impl<'s, O, C> Test<TestTracer<'s, C>, Span<'s>, (Span<'s>, O), ParserError<'s, C>>
+impl<'a, 's, O, C> Test<TestTracer<'a, 's, C>, Span<'s>, (Span<'s>, O), ParserError<'s, C>>
 where
     O: Debug,
     C: Code,
@@ -49,7 +62,7 @@ where
 
     /// Sets a filter on the trace.
     #[must_use]
-    pub fn filter(&self, filter: &'s dyn Fn(&Track<'_, C>) -> bool) -> &Self {
+    pub fn filter(&'a self, filter: FilterFn<'a, C>) -> &Self {
         self.x.trace_filter.replace(filter);
         self
     }
@@ -58,14 +71,14 @@ where
 /// Dumps the full parser trace if any test failed.
 pub struct CheckTrace;
 
-impl<'s, O, C, E> Report<TestTracer<'s, C>, Span<'s>, (Span<'s>, O), E> for CheckTrace
+impl<'s, O, C, E> Report<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E> for CheckTrace
 where
     E: Debug,
     O: Debug,
     C: Code,
 {
     #[track_caller]
-    fn report(testn: &Test<TestTracer<'s, C>, Span<'s>, (Span<'s>, O), E>) {
+    fn report(testn: &Test<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E>) {
         if testn.fail.get() {
             trace(testn);
             panic!()
@@ -76,29 +89,29 @@ where
 /// Dumps the full parser trace.
 pub struct Trace;
 
-impl<'s, O, C, E> Report<TestTracer<'s, C>, Span<'s>, (Span<'s>, O), E> for Trace
+impl<'s, O, C, E> Report<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E> for Trace
 where
     E: Debug,
     O: Debug,
     C: Code,
 {
-    fn report(testn: &Test<TestTracer<'s, C>, Span<'s>, (Span<'s>, O), E>) {
+    fn report(testn: &Test<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E>) {
         trace(testn);
     }
 }
 
-fn trace<'s, O, C, E>(testn: &Test<TestTracer<'s, C>, Span<'s>, (Span<'s>, O), E>)
+fn trace<'s, O, C, E>(testn: &Test<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E>)
 where
     O: Debug,
     E: Debug,
     C: Code,
 {
-    struct TracerDebug<'a, 'b, 's, C: Code> {
+    struct TracerDebug<'a, 's, C: Code> {
         trace: &'a CTracer<'s, C>,
-        track_filter: &'b dyn Fn(&Track<'s, C>) -> bool,
+        track_filter: FilterFn<'a, C>,
     }
 
-    impl<'a, 'b, 's, C: Code> Debug for TracerDebug<'a, 'b, 's, C> {
+    impl<'a, 's, C: Code> Debug for TracerDebug<'a, 's, C> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             self.trace.write(f, DebugWidth::Medium, self.track_filter)
         }
@@ -145,7 +158,7 @@ impl<'a, C: Code> TestSpan for ParserResult<'a, Span<'a>, C> {
             }
             Err(e) => {
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self
@@ -162,12 +175,12 @@ impl<'a, C: Code> TestSpanPair for ParserResult<'a, (Option<Span<'a>>, Span<'a>)
                     test.ok(offset, fragment);
                 } else {
                     println!("Was None, should be {} '{}'", offset, fragment);
-                    assert!(false);
+                    panic!();
                 }
             }
             Err(e) => {
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self
@@ -188,7 +201,7 @@ impl<'a, C: Code> TestSpanPair for ParserResult<'a, (Option<Span<'a>>, Span<'a>)
             }
             Err(e) => {
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self
@@ -203,7 +216,7 @@ impl<'a, C: Code> TestSpanPair for ParserResult<'a, (Option<Span<'a>>, Span<'a>)
             }
             Err(e) => {
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
         }
         self
@@ -217,23 +230,23 @@ impl<'a, C: Code> TestFail<C> for ParserResult<'a, Span<'a>, C> {
             Ok((rest, token)) => {
                 println!("Ok, but should have failed:");
                 println!("    rest='{}' token='{}'", rest, token);
-                assert!(false);
+                panic!();
             }
             Err(e) if e.code == C::NOM_ERROR => {
                 println!("Failed with ErrNomError. To unspecified.");
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
             Err(e) if e.code == C::NOM_FAILURE => {
                 println!("Failed with ErrNomFailure.");
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
             Err(e) => {
                 if e.code != kind {
                     println!("Failed with the wrong ErrorKind:");
                     println!("    '{}' => result={} <> kind={:?}", e.span, e, kind);
-                    assert!(false);
+                    panic!();
                 }
             }
         }
@@ -261,23 +274,23 @@ impl<'a, C: Code> TestFail<C> for ParserResult<'a, (Option<Span<'a>>, Span<'a>),
             Ok((rest, token)) => {
                 println!("Ok, but should have failed:");
                 println!("    rest='{}' token='{:?}'", rest, token);
-                assert!(false);
+                panic!();
             }
             Err(e) if e.code == C::NOM_ERROR => {
                 println!("Failed with ErrNomError. To unspecified.");
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
             Err(e) if e.code == C::NOM_FAILURE => {
                 println!("Failed with ErrNomFailure.");
                 println!("{:?}", e);
-                assert!(false);
+                panic!();
             }
             Err(e) => {
                 if e.code != kind {
                     println!("Failed with the wrong ErrorKind:");
                     println!("    '{}' => result={} <> kind={:?}", e.span, e, kind);
-                    assert!(false);
+                    panic!();
                 }
             }
         }

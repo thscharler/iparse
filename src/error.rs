@@ -60,7 +60,7 @@ impl<'s, C: Code> ParserError<'s, C> {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     /// Was this one of the expected errors.

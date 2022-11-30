@@ -109,11 +109,11 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
     }
 
     /// Write a debug output of the Tracer state.
-    fn write<'a, 'b>(
-        &'a self,
+    fn write(
+        &self,
         out: &mut impl fmt::Write,
         w: DebugWidth,
-        filter: FilterFn<'b, 's, C>,
+        filter: FilterFn<'_, C>,
     ) -> fmt::Result {
         debug_tracer(out, w, self, filter)
     }

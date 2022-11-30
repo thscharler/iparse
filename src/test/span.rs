@@ -5,6 +5,7 @@ use std::fmt::Debug;
 // works for any fn that uses a Span as input and returns a (Span, X) pair.
 impl<'s, P, O, E> Test<P, Span<'s>, (Span<'s>, O), E>
 where
+    P: Default,
     O: Debug,
     E: Debug,
 {
@@ -59,6 +60,7 @@ pub struct CheckDump;
 
 impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for CheckDump
 where
+    P: Default,
     E: Debug,
     O: Debug,
 {
@@ -76,6 +78,7 @@ pub struct Dump;
 
 impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for Dump
 where
+    P: Default,
     E: Debug,
     O: Debug,
 {
@@ -86,6 +89,7 @@ where
 
 fn dump<'s, P, O, E>(testn: &Test<P, Span<'s>, (Span<'s>, O), E>)
 where
+    P: Default,
     E: Debug,
     O: Debug,
 {
@@ -108,12 +112,14 @@ where
 }
 
 /// Compare with an Ok(Span<'s>)
+#[allow(clippy::needless_lifetimes)]
 #[allow(dead_code)]
 pub fn span<'a, 'b, 's>(span: &'a Span<'s>, value: (usize, &'b str)) -> bool {
     **span == value.1 && span.location_offset() == value.0
 }
 
 /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the first span, fail on None.
+#[allow(clippy::needless_lifetimes)]
 #[allow(dead_code)]
 pub fn span_0<'a, 'b, 's>(span: &'a (Option<Span<'s>>, Span<'s>), value: (usize, &'b str)) -> bool {
     if let Some(span) = &span.0 {
@@ -124,12 +130,14 @@ pub fn span_0<'a, 'b, 's>(span: &'a (Option<Span<'s>>, Span<'s>), value: (usize,
 }
 
 /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the first span, fail on Some.
+#[allow(clippy::needless_lifetimes)]
 #[allow(dead_code)]
 pub fn span_0_isnone<'a, 's>(span: &'a (Option<Span<'s>>, Span<'s>), _value: ()) -> bool {
     span.0.is_none()
 }
 
 /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the second span.
+#[allow(clippy::needless_lifetimes)]
 #[allow(dead_code)]
 pub fn span_1<'a, 'b, 's>(span: &'a (Option<Span<'s>>, Span<'s>), value: (usize, &'b str)) -> bool {
     *span.1 == value.1 && span.1.location_offset() == value.0
@@ -143,13 +151,13 @@ impl<'a> TestSpan for Span<'a> {
             println!("Fragment fails:");
             println!("    result='{}'", self.fragment());
             println!("    test  ='{}'", fragment);
-            assert!(false);
+            panic!();
         }
         if self.location_offset() != offset {
             println!("Offset fails for '{}'", self.fragment());
             println!("    offset={}", self.location_offset());
             println!("    test  ={}", offset);
-            assert!(false);
+            panic!();
         }
         self
     }

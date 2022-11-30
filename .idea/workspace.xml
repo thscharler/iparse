@@ -8,7 +8,19 @@
     <cargoProject FILE="$PROJECT_DIR$/../openformula/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="transfer test framework from openformula." />
+    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="Refine FilterFn's lifetimes. &#10;&#10;Add P:Default is simpler. &#10;&#10;clippy complains about assert!(false)">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/debug/tracer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/tracer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/span.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/span.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/general.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/general.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/nom.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/nom.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/parser.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/parser.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/span.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/span.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/token.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/token.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracer.rs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -16,8 +28,8 @@
   </component>
   <component name="ChangesViewManager">
     <option name="groupingKeys">
-      <option value="repository" />
       <option value="module" />
+      <option value="repository" />
     </option>
   </component>
   <component name="FileTemplateManagerImpl">
@@ -61,9 +73,60 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\iparse\src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Build">
+  <component name="RunManager" selected="Cargo.Clippy">
     <configuration name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build " />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="clippy" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Doc" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="doc" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command" nameIsGenerated="true">
+      <option name="command" value="run" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -99,6 +162,9 @@
     <list>
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Build" />
+      <item itemvalue="Cargo.Run" />
+      <item itemvalue="Cargo.Clippy" />
+      <item itemvalue="Cargo.Doc" />
     </list>
   </component>
   <component name="RustProjectSettings">
@@ -191,7 +257,8 @@
     <MESSAGE value="Copied from openformula" />
     <MESSAGE value="change write_debug to write and use a fmt::Write instead of fmt::Formatter." />
     <MESSAGE value="transfer test framework from openformula." />
-    <option name="LAST_COMMIT_MESSAGE" value="transfer test framework from openformula." />
+    <MESSAGE value="Refine FilterFn's lifetimes. &#10;&#10;Add P:Default is simpler. &#10;&#10;clippy complains about assert!(false)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refine FilterFn's lifetimes. &#10;&#10;Add P:Default is simpler. &#10;&#10;clippy complains about assert!(false)" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

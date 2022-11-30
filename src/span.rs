@@ -8,7 +8,8 @@ use nom::Offset;
 use std::slice;
 use std::str::from_utf8_unchecked;
 
-// See span_union for details.
+/// # Safety
+///  See span_union for details.
 pub unsafe fn span_union_opt<'a>(span0: Option<Span<'a>>, span1: Span<'a>) -> Span<'a> {
     unsafe {
         match span0 {
@@ -18,15 +19,17 @@ pub unsafe fn span_union_opt<'a>(span0: Option<Span<'a>>, span1: Span<'a>) -> Sp
     }
 }
 
-// Returns a new Span that reaches from the beginning of span0 to the end of span1.
-//
-// If any of the following conditions are violated, the result is Undefined Behavior:
-// * Both the starting and other pointer must be either in bounds or one byte past the end of the same allocated object.
-//      Should be guaranteed if both were obtained from on ast run.
-// * Both pointers must be derived from a pointer to the same object.
-//      Should be guaranteed if both were obtained from on ast run.
-// * The distance between the pointers, in bytes, cannot overflow an isize.
-// * The distance being in bounds cannot rely on “wrapping around” the address space.
+/// Returns a new Span that reaches from the beginning of span0 to the end of span1.
+///
+/// # Safety
+///
+/// If any of the following conditions are violated, the result is Undefined Behavior:
+/// * Both the starting and other pointer must be either in bounds or one byte past the end of the same allocated object.
+///      Should be guaranteed if both were obtained from on ast run.
+/// * Both pointers must be derived from a pointer to the same object.
+///      Should be guaranteed if both were obtained from on ast run.
+/// * The distance between the pointers, in bytes, cannot overflow an isize.
+/// * The distance being in bounds cannot rely on “wrapping around” the address space.
 pub unsafe fn span_union<'a>(span0: Span<'a>, span1: Span<'a>) -> Span<'a> {
     let ptr = span0.as_ptr();
     // offset to the start of span1 and add the length of span1.

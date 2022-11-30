@@ -5,12 +5,13 @@ use std::time::Instant;
 
 impl<P, I, O, E> Test<P, I, O, E>
 where
+    P: Default,
     I: Clone + Debug,
     O: Debug,
     E: Debug,
 {
     /// Run a test function and record the results.
-    pub fn run<'a, T>(span: T, fn_test: TestedFn<I, O, E>, x: &dyn Fn() -> P) -> Self
+    pub fn run<T>(span: T, fn_test: TestedFn<I, O, E>) -> Self
     where
         T: Into<I>,
     {
@@ -21,7 +22,7 @@ where
         let elapsed = now.elapsed();
 
         Self {
-            x: x(),
+            x: Default::default(),
             span,
             result,
             duration: elapsed,
