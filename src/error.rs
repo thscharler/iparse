@@ -1,7 +1,7 @@
 use crate::{Code, Span};
 use std::error::Error;
 use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
 
 /// Error for the Parser.
 pub struct ParserError<'s, C: Code> {
@@ -79,7 +79,7 @@ impl<'s, C: Code> ParserError<'s, C> {
 }
 
 impl<'s, C: Code> Display for ParserError<'s, C> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} expects ", self.code)?;
         for (i, exp) in self.expect.iter().enumerate() {
             if i > 0 {

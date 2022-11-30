@@ -1,10 +1,10 @@
 use crate::error::{Expect, ParserError, Suggest};
 use crate::Code;
 use std::fmt;
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 
 impl<'s, C: Code> Debug for ParserError<'s, C> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match f.width() {
             None | Some(0) => debug_parse_of_error_short(f, self),
             Some(1) => debug_parse_of_error_medium(f, self),
@@ -15,21 +15,21 @@ impl<'s, C: Code> Debug for ParserError<'s, C> {
 }
 
 impl<'s, C: Code> Debug for Suggest<'s, C> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:\"{}\"", self.code, self.span)?;
         Ok(())
     }
 }
 
 impl<'s, C: Code> Debug for Expect<'s, C> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:\"{}\"", self.code, self.span)?;
         Ok(())
     }
 }
 
 fn debug_parse_of_error_short<'s, C: Code>(
-    f: &mut Formatter<'_>,
+    f: &mut impl fmt::Write,
     err: &ParserError<'s, C>,
 ) -> fmt::Result {
     write!(f, "ParseOFError {} \"{}\"", err.code, err.span)?;
@@ -46,7 +46,7 @@ fn debug_parse_of_error_short<'s, C: Code>(
 }
 
 fn debug_parse_of_error_medium<'s, C: Code>(
-    f: &mut Formatter<'_>,
+    f: &mut impl fmt::Write,
     err: &ParserError<'s, C>,
 ) -> fmt::Result {
     writeln!(f, "ParseOFError {} \"{}\"", err.code, err.span)?;
@@ -115,7 +115,7 @@ fn debug_parse_of_error_medium<'s, C: Code>(
 }
 
 fn debug_parse_of_error_long<'s, C: Code>(
-    f: &mut Formatter<'_>,
+    f: &mut impl fmt::Write,
     err: &ParserError<'s, C>,
 ) -> fmt::Result {
     writeln!(f, "ParseOFError {} \"{}\"", err.code, err.span)?;
@@ -134,7 +134,7 @@ fn debug_parse_of_error_long<'s, C: Code>(
     Ok(())
 }
 
-fn indent(f: &mut Formatter<'_>, ind: usize) -> fmt::Result {
+fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
     write!(f, "{}", " ".repeat(ind * 4))?;
     Ok(())
 }
@@ -142,7 +142,7 @@ fn indent(f: &mut Formatter<'_>, ind: usize) -> fmt::Result {
 // expect2
 
 fn debug_expect2_long<C: Code>(
-    f: &mut Formatter<'_>,
+    f: &mut impl fmt::Write,
     exp_vec: &Vec<Expect<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
@@ -172,7 +172,7 @@ fn debug_expect2_long<C: Code>(
 }
 
 fn debug_expect2_medium<C: Code>(
-    f: &mut Formatter<'_>,
+    f: &mut impl fmt::Write,
     exp_vec: &Vec<&Expect<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
@@ -219,7 +219,7 @@ fn debug_expect2_medium<C: Code>(
 }
 
 fn debug_expect2_short<C: Code>(
-    f: &mut Formatter<'_>,
+    f: &mut impl fmt::Write,
     exp_vec: &Vec<Expect<'_, C>>,
     _ind: usize,
 ) -> fmt::Result {
@@ -243,7 +243,7 @@ fn debug_expect2_short<C: Code>(
 // suggest2
 
 fn debug_suggest2_long<C: Code>(
-    f: &mut Formatter<'_>,
+    f: &mut impl fmt::Write,
     sug_vec: &Vec<Suggest<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
@@ -273,7 +273,7 @@ fn debug_suggest2_long<C: Code>(
 }
 
 fn debug_suggest2_medium<C: Code>(
-    f: &mut Formatter<'_>,
+    f: &mut impl fmt::Write,
     sug_vec: &Vec<&Suggest<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
@@ -320,7 +320,7 @@ fn debug_suggest2_medium<C: Code>(
 }
 
 fn debug_suggest2_short<C: Code>(
-    f: &mut Formatter<'_>,
+    f: &mut impl fmt::Write,
     sug_vec: &Vec<Suggest<'_, C>>,
     _ind: usize,
 ) -> fmt::Result {

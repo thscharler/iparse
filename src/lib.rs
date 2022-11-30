@@ -9,7 +9,7 @@ use crate::error::{DebugWidth, ParserError};
 use crate::tracer::Track;
 use nom_locate::LocatedSpan;
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display};
 use std::ops::BitOr;
 
 /// Code for parser errors and parser functions.
@@ -104,23 +104,31 @@ pub trait Tracer<'s, C: Code> {
     /// Create a new tracer.
     fn new() -> Self;
 
+    /// Enter a parser function. Absolutely necessary for the rest.
     fn enter(&self, func: C, span: Span<'s>);
 
+    /// Keep track of steps in a complicated parser.
     fn step(&self, step: &'static str, span: Span<'s>);
 
+    /// Some detailed debug information.
     fn debug<T: Into<String>>(&self, step: T);
 
+    /// Adds a suggestion for the current stack frame.
     fn suggest(&self, suggest: C, span: Span<'s>);
 
+    /// Keep track of this error.
     fn stash(&self, err: ParserError<'s, C>);
 
+    /// Write a track for an ok result.
     fn ok<T>(&'_ self, span: Span<'s>, rest: Span<'s>, val: T) -> ParseResult<'s, T, C>;
 
+    /// Write a track for an error.
     fn err<T>(&'_ self, err: ParserError<'s, C>) -> ParseResult<'s, T, C>;
 
-    fn write_debug<'a, 'b>(
+    /// Write a debug output of the Tracer state.
+    fn write<'a, 'b>(
         &'a self,
-        f: &mut Formatter<'_>,
+        o: &mut impl fmt::Write,
         w: DebugWidth,
         filter: FilterFn<'b, 's, C>,
     ) -> fmt::Result;

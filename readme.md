@@ -26,8 +26,6 @@ pub enum ICode {
 pub type IParserError<'s> = ParserError<'s, ICode>;
 ```
 
-
-
 4. Implement the parser in terms of the Parser trait.
 
 ```rust
@@ -90,9 +88,7 @@ mod tokens {
 }
 ```
 
-
-
-
+5. To call the parser use any impl of Tracer. The standard today is CTracer.
 
 
 # Notes

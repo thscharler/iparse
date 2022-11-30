@@ -3,7 +3,7 @@ use crate::error::{DebugWidth, Expect, ParserError, Suggest};
 use crate::{Code, FilterFn, ParseResult, Span, Tracer};
 use std::cell::RefCell;
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display};
 use std::marker::PhantomData;
 
 /// Tracing and error collection.
@@ -109,13 +109,13 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
     }
 
     /// Write a debug output of the Tracer state.
-    fn write_debug<'a, 'b>(
+    fn write<'a, 'b>(
         &'a self,
-        f: &mut Formatter<'_>,
+        out: &mut impl fmt::Write,
         w: DebugWidth,
         filter: FilterFn<'b, 's, C>,
     ) -> fmt::Result {
-        debug_tracer(f, w, self, filter)
+        debug_tracer(out, w, self, filter)
     }
 }
 
@@ -336,7 +336,7 @@ pub enum Usage {
 }
 
 impl Display for Usage {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Usage::Track => write!(f, "track"),
             Usage::Drop => write!(f, "drop"),
@@ -395,7 +395,7 @@ pub struct StepTrack<'s, C> {
 pub struct DebugTrack<'s, C> {
     /// Function.
     pub func: C,
-    /// Debug info.
+    /// Debug info. TODO: Is the string necessary?
     pub dbg: String,
     /// Parser call stack.
     pub parents: Vec<C>,
