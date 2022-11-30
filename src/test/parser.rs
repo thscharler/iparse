@@ -1,14 +1,14 @@
 use crate::error::{DebugWidth, ParserError};
 use crate::test::{Report, Test, TestFail, TestSpan, TestSpanPair};
 use crate::tracer::{CTracer, Track};
-use crate::{Code, ParseResult, Span, Tracer};
+use crate::{Code, ParserResult, Span, Tracer};
 use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::fmt::Debug;
 use std::time::Instant;
 
 /// Parser function.
-pub type ParserFn<'s, O, C> = fn(&'_ CTracer<'s, C>, Span<'s>) -> ParseResult<'s, O, C>;
+pub type ParserFn<'s, O, C> = fn(&'_ CTracer<'s, C>, Span<'s>) -> ParserResult<'s, O, C>;
 
 /// Extra data for the parser fn.
 pub struct TestTracer<'s, C: Code> {
@@ -64,6 +64,7 @@ where
     O: Debug,
     C: Code,
 {
+    #[track_caller]
     fn report(testn: &Test<TestTracer<'s, C>, Span<'s>, (Span<'s>, O), E>) {
         if testn.fail.get() {
             trace(testn);
@@ -134,7 +135,7 @@ where
     }
 }
 
-impl<'a, C: Code> TestSpan for ParseResult<'a, Span<'a>, C> {
+impl<'a, C: Code> TestSpan for ParserResult<'a, Span<'a>, C> {
     /// Test for fn that return a ParseResult.
     #[track_caller]
     fn ok(&self, offset: usize, fragment: &str) -> &Self {
@@ -151,7 +152,7 @@ impl<'a, C: Code> TestSpan for ParseResult<'a, Span<'a>, C> {
     }
 }
 
-impl<'a, C: Code> TestSpanPair for ParseResult<'a, (Option<Span<'a>>, Span<'a>), C> {
+impl<'a, C: Code> TestSpanPair for ParserResult<'a, (Option<Span<'a>>, Span<'a>), C> {
     /// Test for fn that return a ParseResult containing a (Option<Span>, Span).
     #[track_caller]
     fn ok_0(&self, offset: usize, fragment: &str) -> &Self {
@@ -209,7 +210,7 @@ impl<'a, C: Code> TestSpanPair for ParseResult<'a, (Option<Span<'a>>, Span<'a>),
     }
 }
 
-impl<'a, C: Code> TestFail<C> for ParseResult<'a, Span<'a>, C> {
+impl<'a, C: Code> TestFail<C> for ParserResult<'a, Span<'a>, C> {
     #[track_caller]
     fn err(&self, kind: C) -> &Self {
         match self {
@@ -253,7 +254,7 @@ impl<'a, C: Code> TestFail<C> for ParseResult<'a, Span<'a>, C> {
     }
 }
 
-impl<'a, C: Code> TestFail<C> for ParseResult<'a, (Option<Span<'a>>, Span<'a>), C> {
+impl<'a, C: Code> TestFail<C> for ParserResult<'a, (Option<Span<'a>>, Span<'a>), C> {
     #[track_caller]
     fn err(&self, kind: C) -> &Self {
         match self {

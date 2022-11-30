@@ -62,6 +62,7 @@ where
     E: Debug,
     O: Debug,
 {
+    #[track_caller]
     fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
         if testn.fail.get() {
             dump(testn);

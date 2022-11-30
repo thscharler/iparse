@@ -26,7 +26,7 @@ pub trait Code: Copy + Display + Debug + PartialEq {
 pub type Span<'s> = LocatedSpan<&'s str>;
 
 /// Result type.
-pub type ParseResult<'s, O, C> = Result<(Span<'s>, O), error::ParserError<'s, C>>;
+pub type ParserResult<'s, O, C> = Result<(Span<'s>, O), error::ParserError<'s, C>>;
 
 /// Adds a span as location and converts the error to a ParserError.
 pub trait IntoParserError<'s, C, T>
@@ -34,7 +34,7 @@ where
     C: Code,
 {
     /// Maps some error and adds the information of the span where the error occured.
-    fn parse_err(self, span: Span<'s>) -> Result<T, error::ParserError<'s, C>>;
+    fn into_parser_err(self, span: Span<'s>) -> Result<T, error::ParserError<'s, C>>;
 }
 
 /// Result of a look-ahead. Can be chained with | (bit-or).
@@ -58,7 +58,7 @@ pub trait Parser<'s, O, C: Code> {
     }
 
     /// Parses the expression.
-    fn parse<'t>(trace: &'t impl Tracer<'s, C>, rest: Span<'s>) -> ParseResult<'s, O, C>;
+    fn parse<'t>(trace: &'t impl Tracer<'s, C>, rest: Span<'s>) -> ParserResult<'s, O, C>;
 }
 
 /// Compose look ahead values. BitOr seems plausible.
@@ -119,10 +119,10 @@ pub trait Tracer<'s, C: Code> {
     fn stash(&self, err: error::ParserError<'s, C>);
 
     /// Write a track for an ok result.
-    fn ok<T>(&'_ self, span: Span<'s>, rest: Span<'s>, val: T) -> ParseResult<'s, T, C>;
+    fn ok<T>(&'_ self, span: Span<'s>, rest: Span<'s>, val: T) -> ParserResult<'s, T, C>;
 
     /// Write a track for an error.
-    fn err<T>(&'_ self, err: error::ParserError<'s, C>) -> ParseResult<'s, T, C>;
+    fn err<T>(&'_ self, err: error::ParserError<'s, C>) -> ParserResult<'s, T, C>;
 
     /// Write a debug output of the Tracer state.
     fn write<'a, 'b>(

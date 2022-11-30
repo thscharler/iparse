@@ -1,6 +1,6 @@
 use crate::debug::tracer::debug_tracer;
 use crate::error::{DebugWidth, Expect, ParserError, Suggest};
-use crate::{Code, FilterFn, ParseResult, Span, Tracer};
+use crate::{Code, FilterFn, ParserResult, Span, Tracer};
 use std::cell::RefCell;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -62,7 +62,7 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
     }
 
     /// Write a track for an ok result.
-    fn ok<'t, T>(&'t self, span: Span<'s>, rest: Span<'s>, val: T) -> ParseResult<'s, T, C> {
+    fn ok<'t, T>(&'t self, span: Span<'s>, rest: Span<'s>, val: T) -> ParserResult<'s, T, C> {
         self.track_ok(rest, span);
 
         let expect = self.pop_expect();
@@ -82,7 +82,7 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
     }
 
     /// Write a track for an error.
-    fn err<'t, T>(&'t self, mut err: ParserError<'s, C>) -> ParseResult<'s, T, C> {
+    fn err<'t, T>(&'t self, mut err: ParserError<'s, C>) -> ParserResult<'s, T, C> {
         // Freshly created error.
         if !err.tracing {
             err.tracing = true;
@@ -313,7 +313,7 @@ pub trait TrackParseResult<'s, 't, O, C: Code> {
     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self;
 }
 
-impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, O, C> for ParseResult<'s, O, C> {
+impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, O, C> for ParserResult<'s, O, C> {
     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self {
         match self {
             Ok(_) => self,

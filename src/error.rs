@@ -37,6 +37,12 @@ impl<'s, C: Code> ParserError<'s, C> {
         }
     }
 
+    /// Convert to a new error code.
+    pub fn as_err(mut self, code: C) -> Self {
+        self.code = code;
+        self
+    }
+
     /// Special error code. Encodes errors occurring at the margins.
     pub fn is_special(&self) -> bool {
         self.code.is_special()
@@ -143,9 +149,9 @@ where
 {
     fn from(e: nom::Err<ParserError<'s, C>>) -> Self {
         match e {
-            Err::Error(e) => e,
-            Err::Failure(e) => e,
-            Err::Incomplete(_) => unreachable!(),
+            nom::Err::Error(e) => e,
+            nom::Err::Failure(e) => e,
+            nom::Err::Incomplete(_) => unreachable!(),
         }
     }
 }

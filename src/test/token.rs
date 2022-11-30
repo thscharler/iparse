@@ -1,10 +1,10 @@
 use crate::error::ParserError;
 use crate::test::Test;
-use crate::{Code, ParseResult, Span};
+use crate::{Code, ParserResult, Span};
 use std::fmt::Debug;
 
 /// Tokenizer function.
-pub type TokenFn<'s, O, C> = fn(Span<'s>) -> ParseResult<'s, O, C>;
+pub type TokenFn<'s, O, C> = fn(Span<'s>) -> ParserResult<'s, O, C>;
 
 // matches a TokenFn
 impl<'s, O, C> Test<(), Span<'s>, (Span<'s>, O), ParserError<'s, C>>
