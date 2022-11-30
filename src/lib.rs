@@ -3,10 +3,9 @@
 mod debug;
 pub mod error;
 pub mod span;
+pub mod test;
 pub mod tracer;
 
-use crate::error::{DebugWidth, ParserError};
-use crate::tracer::Track;
 use nom_locate::LocatedSpan;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -27,15 +26,15 @@ pub trait Code: Copy + Display + Debug + PartialEq {
 pub type Span<'s> = LocatedSpan<&'s str>;
 
 /// Result type.
-pub type ParseResult<'s, O, C> = Result<(Span<'s>, O), ParserError<'s, C>>;
+pub type ParseResult<'s, O, C> = Result<(Span<'s>, O), error::ParserError<'s, C>>;
 
 /// Adds a span as location and converts the error to a ParserError.
-pub trait IntoParserError<'s, T, C>
+pub trait IntoParserError<'s, C, T>
 where
     C: Code,
 {
     /// Maps some error and adds the information of the span where the error occured.
-    fn parser_error(self, span: Span<'s>) -> Result<T, ParserError<'s, C>>;
+    fn parser_error(self, span: Span<'s>) -> Result<T, error::ParserError<'s, C>>;
 }
 
 /// Result of a look-ahead. Can be chained with | (bit-or).
@@ -117,22 +116,22 @@ pub trait Tracer<'s, C: Code> {
     fn suggest(&self, suggest: C, span: Span<'s>);
 
     /// Keep track of this error.
-    fn stash(&self, err: ParserError<'s, C>);
+    fn stash(&self, err: error::ParserError<'s, C>);
 
     /// Write a track for an ok result.
     fn ok<T>(&'_ self, span: Span<'s>, rest: Span<'s>, val: T) -> ParseResult<'s, T, C>;
 
     /// Write a track for an error.
-    fn err<T>(&'_ self, err: ParserError<'s, C>) -> ParseResult<'s, T, C>;
+    fn err<T>(&'_ self, err: error::ParserError<'s, C>) -> ParseResult<'s, T, C>;
 
     /// Write a debug output of the Tracer state.
     fn write<'a, 'b>(
         &'a self,
         o: &mut impl fmt::Write,
-        w: DebugWidth,
+        w: error::DebugWidth,
         filter: FilterFn<'b, 's, C>,
     ) -> fmt::Result;
 }
 
 /// Filter type for Tracer::write_debug
-pub type FilterFn<'a, 's, C> = &'a dyn for<'t> Fn(&'t Track<'s, C>) -> bool;
+pub type FilterFn<'a, 's, C> = &'a dyn for<'t> Fn(&'t tracer::Track<'s, C>) -> bool;

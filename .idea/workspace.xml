@@ -8,26 +8,35 @@
     <cargoProject FILE="$PROJECT_DIR$/../openformula/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="Copied from openformula">
+    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="transfer test framework from openformula.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/tracer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/tracer.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/Cargo.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../openformula/src/ast.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/ast.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../openformula/src/ast/debug_ast.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/ast/debug_ast.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../openformula/src/conv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/conv.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../openformula/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/format.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/format.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/src/iparse.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/iparse.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../openformula/tests/spantest/test_framework.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/tests/spantest/test_framework.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/src/iparse.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/src/parser.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/parser.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/src/tokens.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/tokens.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/src/tokens/nomtokens.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../openformula/src/tokens/nomtokens.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/tests/spantest/mod.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/tests/spantest/test_framework.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../openformula/tests/spantest/trait_based.rs" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager">
+    <option name="groupingKeys">
+      <option value="repository" />
+      <option value="module" />
+    </option>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -37,7 +46,7 @@
     </option>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../openformula" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$USER_HOME$/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/src/rust/library/core/src/fmt/mod.rs" root0="FORCE_HIGHLIGHTING" />
@@ -135,7 +144,21 @@
       <option name="project" value="LOCAL" />
       <updated>1669753024942</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="change write_debug to write and use a fmt::Write instead of fmt::Formatter.">
+      <created>1669784689275</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1669784689275</updated>
+    </task>
+    <task id="LOCAL-00003" summary="transfer test framework from openformula.">
+      <created>1669786525354</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1669786525354</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -163,7 +186,9 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Copied from openformula" />
-    <option name="LAST_COMMIT_MESSAGE" value="Copied from openformula" />
+    <MESSAGE value="change write_debug to write and use a fmt::Write instead of fmt::Formatter." />
+    <MESSAGE value="transfer test framework from openformula." />
+    <option name="LAST_COMMIT_MESSAGE" value="transfer test framework from openformula." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

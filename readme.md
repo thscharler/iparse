@@ -90,6 +90,14 @@ mod tokens {
 
 5. To call the parser use any impl of Tracer. The standard today is CTracer.
 
+6. Testing
+
+Use Test. It has functions for nom::Error and ParseError to test a single parser
+and check the results.
+
+
+
+
 
 # Notes
 
