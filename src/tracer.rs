@@ -308,19 +308,61 @@ impl<'s, C: Code> Default for CTracer<'s, C> {
 ///
 /// Makes sure the tracer can keep track of the complete parse call tree.
 pub trait TrackParseResult<'s, 't, O, C: Code> {
+    type Result;
+
     /// Translates the error code and adds the standard expect value.
     /// Then tracks the error and marks the current function as finished.
-    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self;
+    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result;
 }
 
 impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, O, C> for ParserResult<'s, O, C> {
-    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self {
+    type Result = Self;
+
+    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
         match self {
             Ok(_) => self,
             Err(e) => trace.err(e),
         }
     }
 }
+
+impl<'s, 't, C: Code> TrackParseResult<'s, 't, Span<'s>, C>
+    for Result<(Span<'s>, Span<'s>), nom::Err<ParserError<'s, C>>>
+{
+    type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;
+
+    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
+        match self {
+            Ok(v) => Ok(v),
+            Err(nom::Err::Error(e)) => trace.err(e),
+            Err(nom::Err::Failure(e)) => trace.err(e),
+            Err(nom::Err::Incomplete(_)) => unreachable!(),
+        }
+    }
+}
+
+// pub trait TrackParseResult<'s, 't, O, C: Code> {
+//     type Result;
+//
+//     /// Translates the error code and adds the standard expect value.
+//     /// Then tracks the error and marks the current function as finished.
+//     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result;
+// }
+//
+// impl<'s, 't, C: Code> TrackParseResult<'s, 't, Span<'s>, C>
+//     for Result<(Span<'s>, Span<'s>), nom::Err<ParserError<'s, C>>>
+// {
+//     type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;
+//
+//     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
+//         match self {
+//             Ok(v) => Ok(v),
+//             Err(nom::Err::Error(e)) => trace.err(e),
+//             Err(nom::Err::Failure(e)) => trace.err(e),
+//             Err(nom::Err::Incomplete(_)) => unreachable!(),
+//         }
+//     }
+// }
 
 // Track -----------------------------------------------------------------
 

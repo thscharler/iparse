@@ -6,21 +6,31 @@ mod parser;
 mod span;
 mod token;
 
-use std::cell::Cell;
-use std::fmt::Debug;
-use std::time::Duration;
-
 pub use self::general::*;
 pub use self::nom::*;
 pub use self::parser::*;
 pub use self::span::*;
 pub use self::token::*;
+pub use crate::optional;
+
+use crate::tracer::CTracer;
+use crate::{ParserResult, Span};
+use ::nom::IResult;
+use std::cell::Cell;
+use std::fmt::Debug;
+use std::time::Duration;
 
 /// Most general test fn.
 pub type TestedFn<I, O, E> = fn(I) -> Result<O, E>;
 
 /// Value comparison.
 pub type CompareFn<O, V> = for<'a> fn(&'a O, V) -> bool;
+
+/// Signature of a classic nom function for Test.
+pub type NomFn<'s, O> = fn(Span<'s>) -> IResult<Span<'s>, O>;
+
+/// Signature of a parser function for Test.
+pub type ParserFn<'s, O, C> = fn(&'_ CTracer<'s, C>, Span<'s>) -> ParserResult<'s, O, C>;
 
 /// Test runner.
 pub struct Test<P, I, O, E>
@@ -113,6 +123,3 @@ macro_rules! optional {
         }
     };
 }
-
-#[allow(unused_imports)]
-pub use optional;

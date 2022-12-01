@@ -1,12 +1,8 @@
 use crate::{Code, Span};
 use nom::error::ErrorKind;
-use nom::IResult;
 use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
-
-/// Type alias for a nom parser. Use this to create a ParserError directly in nom.
-pub type ParserNomResult<'s, C> = IResult<Span<'s>, Span<'s>, ParserError<'s, C>>;
 
 /// Error for the Parser.
 pub struct ParserError<'s, C: Code> {

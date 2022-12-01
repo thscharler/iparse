@@ -6,11 +6,36 @@ pub mod span;
 pub mod test;
 pub mod tracer;
 
+use crate::error::ParserError;
 use crate::tracer::Track;
+use nom::IResult;
 use nom_locate::LocatedSpan;
 use std::fmt;
 use std::fmt::{Debug, Display};
 use std::ops::BitOr;
+
+/// Standard input type.
+pub type Span<'s> = LocatedSpan<&'s str>;
+
+/// Result type.
+pub type ParserResult<'s, O, C> = Result<(Span<'s>, O), ParserError<'s, C>>;
+
+pub type ParserResult2<'s, C, T> = Result<T, ParserError<'s, C>>;
+
+/// Adds a span as location and converts the error to a ParserError.
+pub trait IntoParserResult<'s, C, T>
+where
+    C: Code,
+{
+    /// Maps some error and adds the information of the span where the error occured.
+    fn into_parser_err(self, span: Span<'s>) -> ParserResult2<'s, C, T>;
+}
+
+/// Type alias for a nom parser. Use this to create a ParserError directly in nom.
+pub type ParserNomResult<'s, C> = IResult<Span<'s>, Span<'s>, ParserError<'s, C>>;
+
+/// Filter type for Tracer::write_debug
+pub type FilterFn<'a, C> = &'a dyn Fn(&Track<'_, C>) -> bool;
 
 /// Code for parser errors and parser functions.
 pub trait Code: Copy + Display + Debug + PartialEq {
@@ -21,21 +46,6 @@ pub trait Code: Copy + Display + Debug + PartialEq {
     fn is_special(&self) -> bool {
         *self == Self::NOM_ERROR || *self == Self::NOM_FAILURE || *self == Self::PARSE_INCOMPLETE
     }
-}
-
-/// Standard input type.
-pub type Span<'s> = LocatedSpan<&'s str>;
-
-/// Result type.
-pub type ParserResult<'s, O, C> = Result<(Span<'s>, O), error::ParserError<'s, C>>;
-
-/// Adds a span as location and converts the error to a ParserError.
-pub trait IntoParserError<'s, C, T>
-where
-    C: Code,
-{
-    /// Maps some error and adds the information of the span where the error occured.
-    fn into_parser_err(self, span: Span<'s>) -> Result<T, error::ParserError<'s, C>>;
 }
 
 /// Result of a look-ahead. Can be chained with | (bit-or).
@@ -133,6 +143,3 @@ pub trait Tracer<'s, C: Code> {
         filter: FilterFn<'_, C>,
     ) -> fmt::Result;
 }
-
-/// Filter type for Tracer::write_debug
-pub type FilterFn<'a, C> = &'a dyn Fn(&Track<'_, C>) -> bool;

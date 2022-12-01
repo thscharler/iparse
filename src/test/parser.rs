@@ -1,14 +1,11 @@
 use crate::error::{DebugWidth, ParserError};
-use crate::test::{Report, Test, TestFail, TestSpan, TestSpanPair};
+use crate::test::{ParserFn, Report, Test, TestFail, TestSpan, TestSpanPair};
 use crate::tracer::{CTracer, Track};
 use crate::{Code, FilterFn, ParserResult, Span, Tracer};
 use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::fmt::Debug;
 use std::time::Instant;
-
-/// Parser function.
-pub type ParserFn<'s, O, C> = fn(&'_ CTracer<'s, C>, Span<'s>) -> ParserResult<'s, O, C>;
 
 /// Extra data for the parser fn.
 pub struct TestTracer<'a, 's, C: Code> {

@@ -1,10 +1,7 @@
-use crate::test::{Test, TestFail, TestSpan, TestSpanPair};
+use crate::test::{NomFn, Test, TestFail, TestSpan, TestSpanPair};
 use crate::Span;
 use nom::IResult;
 use std::fmt::Debug;
-
-/// Nom parser fn
-pub type NomFn<'s, O> = fn(Span<'s>) -> IResult<Span<'s>, O>;
 
 // works for any NomFn.
 // the extra restriction on the x-data leaves no imagination for the compiler.
