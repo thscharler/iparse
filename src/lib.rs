@@ -133,8 +133,8 @@ pub trait Tracer<'s, C: Code> {
     /// Write a track for an ok result.
     fn ok<T>(
         &'_ self,
-        span: Span<'s>,
         rest: Span<'s>,
+        span: Span<'s>,
         val: T,
     ) -> ParserResult<'s, C, (Span<'s>, T)>;
 

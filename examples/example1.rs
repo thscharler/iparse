@@ -144,7 +144,7 @@ impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
             Err(e) => return trace.err(e),
         };
 
-        trace.ok(token.span, rest, token)
+        trace.ok(rest, token.span, token)
     }
 }
 
@@ -201,7 +201,7 @@ impl<'s> Parser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
             Err(e) => return trace.err(e.into()),
         };
 
-        trace.ok(tok.span, rest, tok)
+        trace.ok(rest, tok.span, tok)
     }
 }
 
@@ -221,7 +221,7 @@ impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for ParseNonTerminal1 {
 
         let span = unsafe { span_union(a.span, b.span) };
 
-        trace.ok(span, rest, NonTerminal1 { a, b, span })
+        trace.ok(rest, span, NonTerminal1 { a, b, span })
     }
 }
 
@@ -257,7 +257,7 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
             }
         };
 
-        trace.ok(span, rest, NonTerminal2 { a, b, c, span })
+        trace.ok(rest, span, NonTerminal2 { a, b, c, span })
     }
 }
 

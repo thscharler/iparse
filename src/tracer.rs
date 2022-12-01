@@ -64,8 +64,8 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
     /// Write a track for an ok result.
     fn ok<'t, T>(
         &'t self,
-        span: Span<'s>,
         rest: Span<'s>,
+        span: Span<'s>,
         val: T,
     ) -> ParserResult<'s, C, (Span<'s>, T)> {
         self.track_ok(rest, span);
