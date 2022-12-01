@@ -1,5 +1,5 @@
 use crate::error::{DebugWidth, ParserError};
-use crate::tracer::{CTracer, Track};
+use crate::tracer::CTracer;
 use crate::{Code, FilterFn, ParserResult, Span, Tracer};
 use ::nom::IResult;
 use std::cell::{Cell, RefCell};
@@ -94,33 +94,85 @@ macro_rules! optional {
 
 // General stuff ---------------------------------------------------------
 
+/// Run a test for a nom parser.
+#[must_use]
+pub fn test_nom<'s, T: Debug>(
+    span: &'s str,
+    fn_test: NomFn<'s, T>,
+) -> Test<(), Span<'s>, (Span<'s>, T), nom::Err<nom::error::Error<Span<'s>>>> {
+    let span: Span<'s> = span.into();
+
+    let now = Instant::now();
+    let result = fn_test(span.clone());
+    let elapsed = now.elapsed();
+
+    Test {
+        x: (),
+        span,
+        result,
+        duration: elapsed,
+        fail: Cell::new(false),
+    }
+}
+
+/// Runs the tokenizer function and records the results.
+/// Use ok(), err(), ... to check specifics.
+///
+/// Finish the test with q().
+#[must_use]
+pub fn test_token<'s, V: Debug, C: Code>(
+    span: &'s str,
+    fn_test: TokenFn<'s, V, C>,
+) -> Test<(), Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
+    let span: Span<'s> = span.into();
+
+    let now = Instant::now();
+    let result = fn_test(span.clone());
+    let elapsed = now.elapsed();
+
+    Test {
+        x: Default::default(),
+        span,
+        result,
+        duration: elapsed,
+        fail: Cell::new(false),
+    }
+}
+
+/// Runs the parser and records the results.
+/// Use ok(), err(), ... to check specifics.
+///
+/// Finish the test with q().
+#[must_use]
+pub fn test_parse<'a, 's, V: Debug, C: Code>(
+    span: &'s str,
+    fn_test: ParserFn<'s, V, C>,
+) -> Test<TestTracer<'a, 's, C>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
+    let span = Span::new(span);
+    let trace = CTracer::new();
+
+    let now = Instant::now();
+    let result = fn_test(&trace, span);
+    let elapsed = now.elapsed();
+
+    Test {
+        x: TestTracer {
+            trace,
+            trace_filter: RefCell::new(&|_| true),
+        },
+        span,
+        result,
+        duration: elapsed,
+        fail: Cell::new(false),
+    }
+}
+
 impl<P, I, O, E> Test<P, I, O, E>
 where
-    P: Default,
     I: Clone + Debug,
     O: Debug,
     E: Debug,
 {
-    /// Run a test function and record the results.
-    pub fn run<T>(span: T, fn_test: TestedFn<I, O, E>) -> Self
-    where
-        T: Into<I>,
-    {
-        let span: I = span.into();
-
-        let now = Instant::now();
-        let result = fn_test(span.clone());
-        let elapsed = now.elapsed();
-
-        Self {
-            x: Default::default(),
-            span,
-            result,
-            duration: elapsed,
-            fail: Cell::new(false),
-        }
-    }
-
     /// Sets the failed flag.
     pub fn flag_fail(&self) {
         self.fail.set(true);
@@ -179,7 +231,6 @@ where
 // works for any fn that uses a Span as input and returns a (Span, X) pair.
 impl<'s, P, O, E> Test<P, Span<'s>, (Span<'s>, O), E>
 where
-    P: Default,
     O: Debug,
     E: Debug,
 {
@@ -229,62 +280,6 @@ where
     }
 }
 
-/// Dumps the Result data if any test failed.
-pub struct CheckDump;
-
-impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for CheckDump
-where
-    P: Default,
-    E: Debug,
-    O: Debug,
-{
-    #[track_caller]
-    fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
-        if testn.fail.get() {
-            dump(testn);
-            panic!()
-        }
-    }
-}
-
-/// Dumps the Result data.
-pub struct Dump;
-
-impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for Dump
-where
-    P: Default,
-    E: Debug,
-    O: Debug,
-{
-    fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
-        dump(testn)
-    }
-}
-
-fn dump<'s, P, O, E>(testn: &Test<P, Span<'s>, (Span<'s>, O), E>)
-where
-    P: Default,
-    E: Debug,
-    O: Debug,
-{
-    println!();
-    println!(
-        "when parsing '{}' in {}ns =>",
-        testn.span,
-        testn.duration.as_nanos()
-    );
-    match &testn.result {
-        Ok((rest, token)) => {
-            println!("rest {}:\"{}\"", rest.location_offset(), rest);
-            println!("{:0?}", token);
-        }
-        Err(e) => {
-            println!("error");
-            println!("{:1?}", e);
-        }
-    }
-}
-
 // Span based ------------------------------------------------------------
 
 /// Compare with an Ok(Span<'s>)
@@ -322,21 +317,8 @@ pub fn span_1<'a, 'b, 's>(span: &'a (Option<Span<'s>>, Span<'s>), value: (usize,
 // Nom  ------------------------------------------------------------------
 
 // works for any NomFn.
-// the extra restriction on the x-data leaves no imagination for the compiler.
-impl<'s, O> Test<(), Span<'s>, (Span<'s>, O), nom::Err<nom::error::Error<Span<'s>>>>
-where
-    O: Debug,
-{
-    /// Run a test for a nom parser.
-    pub fn nom(span: &'s str, fn_test: NomFn<'s, O>) -> Self {
-        Self::run(span, fn_test)
-    }
-}
-
-// works for any NomFn.
 impl<'s, P, O> Test<P, Span<'s>, (Span<'s>, O), nom::Err<nom::error::Error<Span<'s>>>>
 where
-    P: Default,
     O: Debug,
 {
     /// Test for a nom error that occurred.
@@ -364,24 +346,8 @@ where
 
 // Tokenizer -------------------------------------------------------------
 
-// matches a TokenFn
-impl<'s, O, C> Test<(), Span<'s>, (Span<'s>, O), ParserError<'s, C>>
-where
-    O: Debug,
-    C: Code,
-{
-    /// Runs the tokenizer function and records the results.
-    /// Use ok(), err(), ... to check specifics.
-    ///
-    /// Finish the test with q().
-    pub fn token(span: &'s str, fn_test: TokenFn<'s, O, C>) -> Self {
-        Self::run(span, fn_test)
-    }
-}
-
 impl<'s, P, O, C> Test<P, Span<'s>, O, ParserError<'s, C>>
 where
-    P: Default,
     O: Debug,
     C: Code,
 {
@@ -456,55 +422,72 @@ pub struct TestTracer<'a, 's, C: Code> {
     pub trace_filter: RefCell<FilterFn<'a, C>>,
 }
 
-fn no_filter<'s, C: Code>(_: &Track<'s, C>) -> bool {
-    true
-}
-
-impl<'a, 's, C: Code> Default for TestTracer<'a, 's, C> {
-    fn default() -> Self {
-        Self {
-            trace: CTracer::new(),
-            trace_filter: RefCell::new(&no_filter),
-        }
-    }
-}
-
 // matches a ParserFn
 impl<'a, 's, O, C> Test<TestTracer<'a, 's, C>, Span<'s>, (Span<'s>, O), ParserError<'s, C>>
 where
     O: Debug,
     C: Code,
 {
-    /// Runs the parser and records the results.
-    /// Use ok(), err(), ... to check specifics.
-    ///
-    /// Finish the test with q().
-    #[must_use]
-    pub fn parse(span: &'s str, fn_test: ParserFn<'s, O, C>) -> Self {
-        let span = Span::new(span);
-        let trace = CTracer::new();
-
-        let now = Instant::now();
-        let result = fn_test(&trace, span);
-        let elapsed = now.elapsed();
-
-        Self {
-            x: TestTracer {
-                trace,
-                trace_filter: RefCell::new(&|_| true),
-            },
-            span,
-            result,
-            duration: elapsed,
-            fail: Cell::new(false),
-        }
-    }
-
     /// Sets a filter on the trace.
     #[must_use]
     pub fn filter(&'a self, filter: FilterFn<'a, C>) -> &Self {
         self.x.trace_filter.replace(filter);
         self
+    }
+}
+
+// Reporting -------------------------------------------------------------
+
+/// Dumps the Result data if any test failed.
+pub struct CheckDump;
+
+impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for CheckDump
+where
+    E: Debug,
+    O: Debug,
+{
+    #[track_caller]
+    fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
+        if testn.fail.get() {
+            dump(testn);
+            panic!()
+        }
+    }
+}
+
+/// Dumps the Result data.
+pub struct Dump;
+
+impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for Dump
+where
+    E: Debug,
+    O: Debug,
+{
+    fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
+        dump(testn)
+    }
+}
+
+fn dump<'s, P, O, E>(testn: &Test<P, Span<'s>, (Span<'s>, O), E>)
+where
+    E: Debug,
+    O: Debug,
+{
+    println!();
+    println!(
+        "when parsing '{}' in {}ns =>",
+        testn.span,
+        testn.duration.as_nanos()
+    );
+    match &testn.result {
+        Ok((rest, token)) => {
+            println!("rest {}:\"{}\"", rest.location_offset(), rest);
+            println!("{:0?}", token);
+        }
+        Err(e) => {
+            println!("error");
+            println!("{:1?}", e);
+        }
     }
 }
 
