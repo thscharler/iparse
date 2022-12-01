@@ -4,6 +4,7 @@ mod debug;
 pub mod error;
 pub mod span;
 pub mod test;
+pub mod test2;
 pub mod tracer;
 
 use crate::error::ParserError;

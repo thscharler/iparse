@@ -1,10 +1,16 @@
-use crate::ICode::ICNonTerminal1;
+use crate::ICode::*;
+use iparse::error::ParserError;
 use iparse::span::span_union;
+use iparse::test::{CheckTrace, Test};
 use iparse::tracer::CTracer;
 use iparse::tracer::TrackParseResult;
-use iparse::{Code, LookAhead, Parser, ParserNomResult, ParserResult, Span, Tracer};
+use iparse::{
+    Code, IntoParserResult, LookAhead, Parser, ParserNomResult, ParserResult, Span, Tracer,
+};
 use nom::bytes::complete::tag;
+use nom::character::complete::digit1;
 use std::fmt::{Display, Formatter};
+use std::num::ParseIntError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ICode {
@@ -14,28 +20,30 @@ pub enum ICode {
 
     ICTerminalA,
     ICTerminalB,
+    ICTerminalC,
     ICNonTerminal1,
     ICNonTerminal2,
     ICInteger,
 }
 
 impl Code for ICode {
-    const NOM_ERROR: Self = Self::ICNomError;
-    const NOM_FAILURE: Self = Self::ICNomError;
-    const PARSE_INCOMPLETE: Self = Self::ICNomError;
+    const NOM_ERROR: Self = ICNomError;
+    const NOM_FAILURE: Self = ICNomError;
+    const PARSE_INCOMPLETE: Self = ICNomError;
 }
 
 impl Display for ICode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            ICode::ICNomError => "NomError",
-            ICode::ICNomFailure => "NomFailure",
-            ICode::ICParseIncomplete => "ParseIncomplete",
-            ICode::ICTerminalA => "TerminalA",
-            ICode::ICInteger => "Int",
-            ICode::ICTerminalB => "TerminalB",
-            ICode::ICNonTerminal1 => "NonTerminal1",
-            ICode::ICNonTerminal2 => "NonTerminal2",
+            ICNomError => "NomError",
+            ICNomFailure => "NomFailure",
+            ICParseIncomplete => "ParseIncomplete",
+            ICTerminalA => "TerminalA",
+            ICInteger => "Int",
+            ICTerminalB => "TerminalB",
+            ICNonTerminal1 => "NonTerminal1",
+            ICNonTerminal2 => "NonTerminal2",
+            ICTerminalC => "TerminalC",
         };
         write!(f, "{}", name)
     }
@@ -57,6 +65,12 @@ pub struct TerminalB<'s> {
 }
 
 #[derive(Debug)]
+pub struct TerminalC<'s> {
+    pub term: u32,
+    pub span: Span<'s>,
+}
+
+#[derive(Debug)]
 pub struct NonTerminal1<'s> {
     pub a: TerminalA<'s>,
     pub b: TerminalB<'s>,
@@ -67,7 +81,17 @@ pub struct NonTerminal1<'s> {
 pub struct NonTerminal2<'s> {
     pub a: Option<TerminalA<'s>>,
     pub b: TerminalB<'s>,
+    pub c: TerminalC<'s>,
     pub span: Span<'s>,
+}
+
+impl<'s, T> IntoParserResult<'s, ICode, T> for Result<T, ParseIntError> {
+    fn into_parser_err(self, span: Span<'s>) -> ParserResult<'s, ICode, T> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(_) => Err(ParserError::new(ICInteger, span)),
+        }
+    }
 }
 
 pub fn nom_parse_a(i: Span<'_>) -> INomResult<'_> {
@@ -76,6 +100,10 @@ pub fn nom_parse_a(i: Span<'_>) -> INomResult<'_> {
 
 pub fn nom_parse_b(i: Span<'_>) -> INomResult<'_> {
     tag("B")(i)
+}
+
+pub fn nom_parse_c(i: Span<'_>) -> INomResult<'_> {
+    digit1(i)
 }
 
 pub fn parse_a(rest: Span<'_>) -> IParserResult<'_, TerminalA> {
@@ -88,7 +116,7 @@ pub fn parse_a(rest: Span<'_>) -> IParserResult<'_, TerminalA> {
             },
         )),
         Err(nom::Err::Error(e)) if e.is_kind(nom::error::ErrorKind::Tag) => {
-            Err(e.as_err(ICode::ICTerminalA))
+            Err(e.as_err(ICTerminalA))
         }
         Err(e) => Err(e.into()),
     }
@@ -98,7 +126,7 @@ pub struct ParseTerminalA;
 
 impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
     fn id() -> ICode {
-        ICode::ICTerminalA
+        ICTerminalA
     }
 
     fn lah(_: Span<'s>) -> LookAhead {
@@ -124,7 +152,7 @@ pub struct ParseTerminalB;
 
 impl<'s> Parser<'s, TerminalB<'s>, ICode> for ParseTerminalB {
     fn id() -> ICode {
-        ICode::ICTerminalB
+        ICTerminalB
     }
 
     fn parse<'t>(
@@ -149,9 +177,37 @@ impl<'s> Parser<'s, TerminalB<'s>, ICode> for ParseTerminalB {
     }
 }
 
+pub struct ParseTerminalC;
+
+impl<'s> Parser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
+    fn id() -> ICode {
+        ICTerminalC
+    }
+
+    fn parse<'t>(
+        trace: &'t impl Tracer<'s, ICode>,
+        rest: Span<'s>,
+    ) -> IParserResult<'s, TerminalC<'s>> {
+        trace.enter(Self::id(), rest);
+
+        let (rest, tok) = match nom_parse_c(rest) {
+            Ok((rest, tok)) => (
+                rest,
+                TerminalC {
+                    term: (*tok).parse::<u32>().into_parser_err(tok).track(trace)?,
+                    span: tok,
+                },
+            ),
+            Err(e) => return trace.err(e.into()),
+        };
+
+        trace.ok(tok.span, rest, tok)
+    }
+}
+
 pub struct ParseNonTerminal1;
 
-impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for NonTerminal1<'s> {
+impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for ParseNonTerminal1 {
     fn id() -> ICode {
         ICNonTerminal1
     }
@@ -171,7 +227,7 @@ impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for NonTerminal1<'s> {
 
 pub struct ParseNonTerminal2;
 
-impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
+impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
     fn id() -> ICode {
         ICNonTerminal1
     }
@@ -189,40 +245,42 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
         };
 
         let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
+        let (rest, c) = ParseTerminalC::parse(trace, rest).track(trace)?;
 
         let span = unsafe {
             if let Some(a) = &a {
-                span_union(a.span, b.span)
+                span_union(a.span, c.span)
             } else {
-                b.span
+                c.span
             }
         };
 
-        trace.ok(span, rest, NonTerminal2 { a, b, span })
+        trace.ok(span, rest, NonTerminal2 { a, b, c, span })
     }
+}
+
+fn run_parser() -> IParserResult<'static, TerminalA<'static>> {
+    let trace = CTracer::new();
+    ParseTerminalA::parse(&trace, Span::new("A"))
 }
 
 fn main() {
-    let trace = CTracer::new();
-    let res = ParseTerminalA::parse(&trace, Span::new("A"));
-    dbg!(&res);
+    let _ = dbg!(run_parser());
 
     // don't know if tests in examples are a thing. simulate.
-    tests::test_terminal_a();
+    test_terminal_a();
 }
 
-mod tests {
-    use crate::ParseTerminalA;
-    use iparse::test::{CheckTrace, Test};
-    use iparse::Parser;
+// #[test]
+pub fn test_terminal_a() {
+    Test::parse("A", ParseTerminalA::parse)
+        .okok()
+        .q::<CheckTrace>();
+    Test::parse("AA", ParseTerminalA::parse)
+        .errerr()
+        .q::<CheckTrace>();
+}
 
-    // #[test]
-    pub fn test_terminal_a() {
-        Test::parse("A", ParseTerminalA::parse)
-            .okok()
-            .q::<CheckTrace>();
-        Test::parse("AA", ParseTerminalA::parse)
-            .errerr()
-            .q::<CheckTrace>();
-    }
+pub fn test_nonterminal2() {
+    // Test::parse("")
 }

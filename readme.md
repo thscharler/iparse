@@ -44,7 +44,7 @@ impl Display for ICode {
 3. Add a type alias for the Result type of the parser fn and the nom parser fn.
 
 ```rust
-pub type IParserResult<'s, O> = ParseResult<'s, O, ICode>;
+pub type IParserResult<'s, O> = ParserResult<'s, ICode, (Span<'s>, O)>;
 pub type INomResult<'s> = ParserNomResult<'s, ICode>;
 ```
 
@@ -156,14 +156,46 @@ pub fn test_terminal_a() {
 There is IntoParserError that can be implemented to import external errors.
 
 ```rust
-   impl<'s, T> IntoParserError<'s, ICode, T> for Result<T, ParseIntError> {
-       fn into_parser_err(self, span: Span<'s>) -> Result<T, IParserError<'s>> {
-           match self {
-               Ok(v) => Ok(v),
-               Err(_) => Err(IParserError::new(ICInt, span)),
-           }
-       }
+impl<'s, T> IntoParserResult<'s, ICode, T> for Result<T, ParseIntError> {
+   fn into_parser_err(self, span: Span<'s>) -> ParserResult<'s, ICode, T> {
+      match self {
+         Ok(v) => Ok(v),
+         Err(_) => Err(ParserError::new(ICInteger, span)),
+      }
    }
+}
+```
+
+And to use it ...
+
+```rust
+pub struct ParseTerminalC;
+
+impl<'s> Parser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
+    fn id() -> ICode {
+        ICTerminalC
+    }
+
+    fn parse<'t>(
+        trace: &'t impl Tracer<'s, ICode>,
+        rest: Span<'s>,
+    ) -> IParserResult<'s, TerminalC<'s>> {
+        trace.enter(Self::id(), rest);
+
+        let (rest, tok) = match nom_parse_c(rest) {
+            Ok((rest, tok)) => (
+                rest,
+                TerminalC {
+                    term: (*tok).parse::<u32>().into_parser_err(tok).track(trace)?,
+                    span: tok,
+                },
+            ),
+            Err(e) => return trace.err(e.into()),
+        };
+
+        trace.ok(tok.span, rest, tok)
+    }
+}
 ```
 
 ## Note 2
