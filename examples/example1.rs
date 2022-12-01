@@ -1,7 +1,7 @@
 use crate::ICode::*;
 use iparse::error::ParserError;
 use iparse::span::span_union;
-use iparse::test::{CheckTrace, Test};
+use iparse::test::{test_parse, Trace};
 use iparse::tracer::CTracer;
 use iparse::tracer::TrackParseResult;
 use iparse::{
@@ -236,6 +236,8 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
         trace: &'t impl Tracer<'s, ICode>,
         rest: Span<'s>,
     ) -> IParserResult<'s, NonTerminal2<'s>> {
+        trace.enter(Self::id(), rest);
+
         let (rest, a) = match ParseTerminalA::parse(trace, rest) {
             Ok((rest, a)) => (rest, Some(a)),
             Err(e) => {
@@ -265,22 +267,23 @@ fn run_parser() -> IParserResult<'static, TerminalA<'static>> {
 }
 
 fn main() {
-    let _ = dbg!(run_parser());
+    let _ = run_parser();
 
     // don't know if tests in examples are a thing. simulate.
     test_terminal_a();
+    test_nonterminal2();
 }
+
+type R = Trace;
 
 // #[test]
 pub fn test_terminal_a() {
-    Test::parse("A", ParseTerminalA::parse)
-        .okok()
-        .q::<CheckTrace>();
-    Test::parse("AA", ParseTerminalA::parse)
-        .errerr()
-        .q::<CheckTrace>();
+    test_parse("A", ParseTerminalA::parse).okok().q::<R>();
+    test_parse("AA", ParseTerminalA::parse).errerr().q::<R>();
 }
 
 pub fn test_nonterminal2() {
-    // Test::parse("")
+    test_parse("AAA", ParseNonTerminal2::parse)
+        .errerr()
+        .q::<R>();
 }

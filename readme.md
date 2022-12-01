@@ -137,16 +137,20 @@ fn main() {
 Use iparse::test::Test. It has functions for nom::Error and ParseError to
 test a single parser and check the results.
 
-```
+When calling q() a report type is needed. These are
+* Dump - Output the error/success. Doesn't panic.
+* CheckDump - Output the error/success. Panics if any of the test-fn failed.
+* Trace - Output the complete trace. Doesn't panic.
+* CheckTrace - Output the complete trace. Panics if any of the test-fn failed.
+
+```rust
+type R = Trace;
+
 #[test]
 pub fn test_terminal_a() {
-    Test::parse("A", ParseTerminalA::parse)
-        .okok()
-        .q::<CheckTrace>();
-    Test::parse("AA", ParseTerminalA::parse)
-        .errerr()
-        .q::<CheckTrace>();
- }
+    test_parse("A", ParseTerminalA::parse).okok().q::<R>();
+    test_parse("AA", ParseTerminalA::parse).errerr().q::<R>();
+}
  ```
 
 # Notes
