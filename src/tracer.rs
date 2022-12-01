@@ -62,7 +62,12 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
     }
 
     /// Write a track for an ok result.
-    fn ok<'t, T>(&'t self, span: Span<'s>, rest: Span<'s>, val: T) -> ParserResult<'s, T, C> {
+    fn ok<'t, T>(
+        &'t self,
+        span: Span<'s>,
+        rest: Span<'s>,
+        val: T,
+    ) -> ParserResult<'s, C, (Span<'s>, T)> {
         self.track_ok(rest, span);
 
         let expect = self.pop_expect();
@@ -82,7 +87,7 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
     }
 
     /// Write a track for an error.
-    fn err<'t, T>(&'t self, mut err: ParserError<'s, C>) -> ParserResult<'s, T, C> {
+    fn err<'t, T>(&'t self, mut err: ParserError<'s, C>) -> ParserResult<'s, C, T> {
         // Freshly created error.
         if !err.tracing {
             err.tracing = true;
@@ -307,7 +312,7 @@ impl<'s, C: Code> Default for CTracer<'s, C> {
 /// This can be squeezed between the call to another parser and the ?-operator.
 ///
 /// Makes sure the tracer can keep track of the complete parse call tree.
-pub trait TrackParseResult<'s, 't, O, C: Code> {
+pub trait TrackParseResult<'s, 't, C: Code, O> {
     type Result;
 
     /// Translates the error code and adds the standard expect value.
@@ -315,7 +320,7 @@ pub trait TrackParseResult<'s, 't, O, C: Code> {
     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result;
 }
 
-impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, O, C> for ParserResult<'s, O, C> {
+impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, C, O> for ParserResult<'s, C, O> {
     type Result = Self;
 
     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
@@ -326,7 +331,7 @@ impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, O, C> for ParserResult<'s, O, 
     }
 }
 
-impl<'s, 't, C: Code> TrackParseResult<'s, 't, Span<'s>, C>
+impl<'s, 't, C: Code> TrackParseResult<'s, 't, C, Span<'s>>
     for Result<(Span<'s>, Span<'s>), nom::Err<ParserError<'s, C>>>
 {
     type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;

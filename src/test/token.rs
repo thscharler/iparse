@@ -4,7 +4,7 @@ use crate::{Code, ParserResult, Span};
 use std::fmt::Debug;
 
 /// Tokenizer function.
-pub type TokenFn<'s, O, C> = fn(Span<'s>) -> ParserResult<'s, O, C>;
+pub type TokenFn<'s, O, C> = fn(Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 // matches a TokenFn
 impl<'s, O, C> Test<(), Span<'s>, (Span<'s>, O), ParserError<'s, C>>

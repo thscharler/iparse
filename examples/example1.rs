@@ -1,9 +1,8 @@
 use crate::ICode::ICNonTerminal1;
-use iparse::error::ParserNomResult;
-use iparse::span::{span_union, span_union_opt};
+use iparse::span::span_union;
 use iparse::tracer::CTracer;
 use iparse::tracer::TrackParseResult;
-use iparse::{Code, LookAhead, Parser, ParserResult, Span, Tracer};
+use iparse::{Code, LookAhead, Parser, ParserNomResult, ParserResult, Span, Tracer};
 use nom::bytes::complete::tag;
 use std::fmt::{Display, Formatter};
 
@@ -42,7 +41,7 @@ impl Display for ICode {
     }
 }
 
-pub type IParserResult<'s, O> = ParserResult<'s, O, ICode>;
+pub type IParserResult<'s, O> = ParserResult<'s, ICode, (Span<'s>, O)>;
 pub type INomResult<'s> = ParserNomResult<'s, ICode>;
 
 #[derive(Debug)]
@@ -160,7 +159,7 @@ impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for NonTerminal1<'s> {
     fn parse<'t>(
         trace: &'t impl Tracer<'s, ICode>,
         rest: Span<'s>,
-    ) -> ParserResult<'s, NonTerminal1<'s>, ICode> {
+    ) -> IParserResult<'s, NonTerminal1<'s>> {
         let (rest, a) = ParseTerminalA::parse(trace, rest).track(trace)?;
         let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
 
@@ -180,7 +179,7 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
     fn parse<'t>(
         trace: &'t impl Tracer<'s, ICode>,
         rest: Span<'s>,
-    ) -> ParserResult<'s, NonTerminal2<'s>, ICode> {
+    ) -> IParserResult<'s, NonTerminal2<'s>> {
         let (rest, a) = match ParseTerminalA::parse(trace, rest) {
             Ok((rest, a)) => (rest, Some(a)),
             Err(e) => {
@@ -192,7 +191,7 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
         let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
 
         let span = unsafe {
-            if let Some(a) = a {
+            if let Some(a) = &a {
                 span_union(a.span, b.span)
             } else {
                 b.span

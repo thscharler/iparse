@@ -30,7 +30,8 @@ pub type CompareFn<O, V> = for<'a> fn(&'a O, V) -> bool;
 pub type NomFn<'s, O> = fn(Span<'s>) -> IResult<Span<'s>, O>;
 
 /// Signature of a parser function for Test.
-pub type ParserFn<'s, O, C> = fn(&'_ CTracer<'s, C>, Span<'s>) -> ParserResult<'s, O, C>;
+pub type ParserFn<'s, O, C> =
+    fn(&'_ CTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 /// Test runner.
 pub struct Test<P, I, O, E>

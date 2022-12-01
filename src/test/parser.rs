@@ -145,7 +145,7 @@ where
     }
 }
 
-impl<'a, C: Code> TestSpan for ParserResult<'a, Span<'a>, C> {
+impl<'a, C: Code> TestSpan for ParserResult<'a, C, (Span<'a>, Span<'a>)> {
     /// Test for fn that return a ParseResult.
     #[track_caller]
     fn ok(&self, offset: usize, fragment: &str) -> &Self {
@@ -162,7 +162,7 @@ impl<'a, C: Code> TestSpan for ParserResult<'a, Span<'a>, C> {
     }
 }
 
-impl<'a, C: Code> TestSpanPair for ParserResult<'a, (Option<Span<'a>>, Span<'a>), C> {
+impl<'a, C: Code> TestSpanPair for ParserResult<'a, C, (Span<'a>, (Option<Span<'a>>, Span<'a>))> {
     /// Test for fn that return a ParseResult containing a (Option<Span>, Span).
     #[track_caller]
     fn ok_0(&self, offset: usize, fragment: &str) -> &Self {
@@ -220,7 +220,7 @@ impl<'a, C: Code> TestSpanPair for ParserResult<'a, (Option<Span<'a>>, Span<'a>)
     }
 }
 
-impl<'a, C: Code> TestFail<C> for ParserResult<'a, Span<'a>, C> {
+impl<'a, C: Code> TestFail<C> for ParserResult<'a, C, (Span<'a>, Span<'a>)> {
     #[track_caller]
     fn err(&self, kind: C) -> &Self {
         match self {
@@ -264,7 +264,7 @@ impl<'a, C: Code> TestFail<C> for ParserResult<'a, Span<'a>, C> {
     }
 }
 
-impl<'a, C: Code> TestFail<C> for ParserResult<'a, (Option<Span<'a>>, Span<'a>), C> {
+impl<'a, C: Code> TestFail<C> for ParserResult<'a, C, (Span<'a>, (Option<Span<'a>>, Span<'a>))> {
     #[track_caller]
     fn err(&self, kind: C) -> &Self {
         match self {
