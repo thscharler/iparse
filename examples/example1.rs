@@ -1,5 +1,8 @@
+use crate::ICode::ICNonTerminal1;
 use iparse::error::ParserNomResult;
+use iparse::span::{span_union, span_union_opt};
 use iparse::tracer::CTracer;
+use iparse::tracer::TrackParseResult;
 use iparse::{Code, LookAhead, Parser, ParserResult, Span, Tracer};
 use nom::bytes::complete::tag;
 use std::fmt::{Display, Formatter};
@@ -11,7 +14,10 @@ pub enum ICode {
     ICParseIncomplete,
 
     ICTerminalA,
-    ICInt,
+    ICTerminalB,
+    ICNonTerminal1,
+    ICNonTerminal2,
+    ICInteger,
 }
 
 impl Code for ICode {
@@ -27,7 +33,10 @@ impl Display for ICode {
             ICode::ICNomFailure => "NomFailure",
             ICode::ICParseIncomplete => "ParseIncomplete",
             ICode::ICTerminalA => "TerminalA",
-            ICode::ICInt => "Int",
+            ICode::ICInteger => "Int",
+            ICode::ICTerminalB => "TerminalB",
+            ICode::ICNonTerminal1 => "NonTerminal1",
+            ICode::ICNonTerminal2 => "NonTerminal2",
         };
         write!(f, "{}", name)
     }
@@ -42,8 +51,32 @@ pub struct TerminalA<'s> {
     pub span: Span<'s>,
 }
 
+#[derive(Debug)]
+pub struct TerminalB<'s> {
+    pub term: String,
+    pub span: Span<'s>,
+}
+
+#[derive(Debug)]
+pub struct NonTerminal1<'s> {
+    pub a: TerminalA<'s>,
+    pub b: TerminalB<'s>,
+    pub span: Span<'s>,
+}
+
+#[derive(Debug)]
+pub struct NonTerminal2<'s> {
+    pub a: Option<TerminalA<'s>>,
+    pub b: TerminalB<'s>,
+    pub span: Span<'s>,
+}
+
 pub fn nom_parse_a(i: Span<'_>) -> INomResult<'_> {
     tag("A")(i)
+}
+
+pub fn nom_parse_b(i: Span<'_>) -> INomResult<'_> {
+    tag("B")(i)
 }
 
 pub fn parse_a(rest: Span<'_>) -> IParserResult<'_, TerminalA> {
@@ -88,11 +121,94 @@ impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
     }
 }
 
+pub struct ParseTerminalB;
+
+impl<'s> Parser<'s, TerminalB<'s>, ICode> for ParseTerminalB {
+    fn id() -> ICode {
+        ICode::ICTerminalB
+    }
+
+    fn parse<'t>(
+        trace: &'t impl Tracer<'s, ICode>,
+        rest: Span<'s>,
+    ) -> IParserResult<'s, TerminalB<'s>> {
+        trace.enter(Self::id(), rest);
+
+        let (rest, token) = match nom_parse_b(rest) {
+            Ok((rest, token)) => (rest, token),
+            Err(e) => return trace.err(e.into()),
+        };
+
+        trace.ok(
+            token,
+            rest,
+            TerminalB {
+                term: token.to_string(),
+                span: token,
+            },
+        )
+    }
+}
+
+pub struct ParseNonTerminal1;
+
+impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for NonTerminal1<'s> {
+    fn id() -> ICode {
+        ICNonTerminal1
+    }
+
+    fn parse<'t>(
+        trace: &'t impl Tracer<'s, ICode>,
+        rest: Span<'s>,
+    ) -> ParserResult<'s, NonTerminal1<'s>, ICode> {
+        let (rest, a) = ParseTerminalA::parse(trace, rest).track(trace)?;
+        let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
+
+        let span = unsafe { span_union(a.span, b.span) };
+
+        trace.ok(span, rest, NonTerminal1 { a, b, span })
+    }
+}
+
+pub struct ParseNonTerminal2;
+
+impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
+    fn id() -> ICode {
+        ICNonTerminal1
+    }
+
+    fn parse<'t>(
+        trace: &'t impl Tracer<'s, ICode>,
+        rest: Span<'s>,
+    ) -> ParserResult<'s, NonTerminal2<'s>, ICode> {
+        let (rest, a) = match ParseTerminalA::parse(trace, rest) {
+            Ok((rest, a)) => (rest, Some(a)),
+            Err(e) => {
+                trace.stash(e);
+                (rest, None)
+            }
+        };
+
+        let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
+
+        let span = unsafe {
+            if let Some(a) = a {
+                span_union(a.span, b.span)
+            } else {
+                b.span
+            }
+        };
+
+        trace.ok(span, rest, NonTerminal2 { a, b, span })
+    }
+}
+
 fn main() {
     let trace = CTracer::new();
     let res = ParseTerminalA::parse(&trace, Span::new("A"));
     dbg!(&res);
 
+    // don't know if tests in examples are a thing. simulate.
     tests::test_terminal_a();
 }
 

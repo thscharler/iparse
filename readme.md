@@ -88,6 +88,12 @@ pub fn parse_a(rest: Span<'_>) -> IParserResult<'_, TerminalA> {
 
 4. Implement the parser in terms of the Parser trait.
 
+The id() identifies the function in the call stack of the tracer. It acts as 
+error code for the same function. For this to work call trace.enter() at the
+start of the function and trace.ok() or trace.err() at each exit point.
+
+There is more later.
+
 ```rust
 pub struct ParseTerminalA;
 
@@ -161,3 +167,88 @@ There is IntoParserError that can be implemented to import external errors.
 ```
 
 ## Note 2
+
+The trait iparse::tracer::TrackParseResult make the composition of parser 
+easier. It provides a track() function for the parser result, that notes a 
+potential error and returns the result. This in turn can be used for the ? 
+operator.
+
+```rust
+pub struct ParseNonTerminal1;
+
+impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for NonTerminal1<'s> {
+    fn id() -> ICode {
+        ICNonTerminal1
+    }
+
+    fn parse<'t>(
+        trace: &'t impl Tracer<'s, ICode>,
+        rest: Span<'s>,
+    ) -> ParserResult<'s, NonTerminal1<'s>, ICode> {
+        let (rest, a) = ParseTerminalA::parse(trace, rest).track(trace)?;
+        let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
+
+        let span = unsafe { span_union(a.span, b.span) };
+
+        trace.ok(span, rest, NonTerminal1 { a, b, span })
+    }
+}
+```
+
+## Note 3
+
+It is good to have the full span for non-terminals in the parser. There is no
+way to glue the spans together via nom. So there is unsafe span_union().
+Should be fine as long as the two spans passed in come from the same original 
+span. Which is almost a given in a parser. Add the correct ordering of the
+parameters and all should be fine.
+
+```rust
+fn ok() {
+   let span = unsafe { span_union(a.span, b.span) };
+}
+```
+
+## Note 4
+
+Handling optional terms is almost as easy as non-optional ones.
+
+With the function stash() the error can be stored somewhere, and will added 
+later in case something else fails. This can add additional context to a later 
+error. In the ok case everything is forgotten.
+
+
+```rust
+pub struct ParseNonTerminal2;
+
+impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
+   fn id() -> ICode {
+      ICNonTerminal1
+   }
+
+   fn parse<'t>(
+      trace: &'t impl Tracer<'s, ICode>,
+      rest: Span<'s>,
+   ) -> ParserResult<'s, NonTerminal2<'s>, ICode> {
+      let (rest, a) = match ParseTerminalA::parse(trace, rest) {
+         Ok((rest, a)) => (rest, Some(a)),
+         Err(e) => {
+            trace.stash(e);
+            (rest, None)
+         }
+      };
+
+      let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
+
+      let span = unsafe {
+         if let Some(a) = a {
+            span_union(a.span, b.span)
+         } else {
+            b.span
+         }
+      };
+
+      trace.ok(span, rest, NonTerminal2 { a, b, span })
+   }
+}
+```
