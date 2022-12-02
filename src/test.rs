@@ -450,7 +450,7 @@ where
     fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
         if testn.fail.get() {
             dump(testn);
-            panic!()
+            panic!("test failed")
         }
     }
 }
@@ -504,7 +504,7 @@ where
     fn report(testn: &Test<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E>) {
         if testn.fail.get() {
             trace(testn);
-            panic!()
+            panic!("test failed")
         }
     }
 }
