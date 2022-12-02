@@ -1,6 +1,6 @@
 use crate::debug::tracer::debug_tracer;
 use crate::error::{DebugWidth, Expect, ParserError, Suggest};
-use crate::{Code, FilterFn, ParserResult, Span, Tracer};
+use crate::{Code, FilterFn, ParserResult, Span, Tracer, TrackParseResult};
 use std::cell::RefCell;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -49,13 +49,21 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
 
     /// Adds a suggestion for the current stack frame.
     fn suggest(&self, suggest: C, span: Span<'s>) {
-        self.debug(format!("suggest {}:\"{}\" ...", suggest, span));
+        self.debug(format!(
+            "suggest {}:\"{}\" ...",
+            suggest,
+            span.escape_default()
+        ));
         self.add_suggest(suggest, span);
     }
 
     /// Keep track of this error.
     fn stash(&self, err: ParserError<'s, C>) {
-        self.debug(format!("expect {}:\"{}\" ...", err.code, err.span));
+        self.debug(format!(
+            "expect {}:\"{}\" ...",
+            err.code,
+            err.span.escape_default()
+        ));
         self.add_expect(err.code, err.span);
         self.append_expect(err.expect);
         self.append_suggest(err.suggest);
@@ -91,7 +99,7 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
         // Freshly created error.
         if !err.tracing {
             err.tracing = true;
-            /// special codes are not very usefull in this position.
+            // special codes are not very usefull in this position.
             if !err.code.is_special() {
                 self.add_expect(err.code, err.span);
             } else {
@@ -141,14 +149,17 @@ impl<'s, C: Code> CTracer<'s, C> {
     }
 
     fn pop_expect(&self) -> ExpectTrack<'s, C> {
-        self.expect.borrow_mut().pop().unwrap()
+        self.expect
+            .borrow_mut()
+            .pop()
+            .expect("Vec<Expect> is empty")
     }
 
     fn add_expect(&self, code: C, span: Span<'s>) {
         self.expect
             .borrow_mut()
             .last_mut()
-            .unwrap()
+            .expect("Vec<Expect> is empty")
             .list
             .push(Expect {
                 code,
@@ -161,7 +172,7 @@ impl<'s, C: Code> CTracer<'s, C> {
         self.expect
             .borrow_mut()
             .last_mut()
-            .unwrap()
+            .expect("Vec<Expect> is empty")
             .list
             .append(&mut expect);
     }
@@ -179,14 +190,17 @@ impl<'s, C: Code> CTracer<'s, C> {
     }
 
     fn pop_suggest(&self) -> SuggestTrack<'s, C> {
-        self.suggest.borrow_mut().pop().unwrap()
+        self.suggest
+            .borrow_mut()
+            .pop()
+            .expect("Vec<Suggest> is empty")
     }
 
     fn add_suggest(&self, code: C, span: Span<'s>) {
         self.suggest
             .borrow_mut()
             .last_mut()
-            .unwrap()
+            .expect("Vec<Suggest> is empty")
             .list
             .push(Suggest {
                 code,
@@ -199,7 +213,7 @@ impl<'s, C: Code> CTracer<'s, C> {
         self.suggest
             .borrow_mut()
             .last_mut()
-            .unwrap()
+            .expect("Vec<Suggest> is empty")
             .list
             .append(&mut suggest);
     }
@@ -219,7 +233,11 @@ impl<'s, C: Code> CTracer<'s, C> {
 
     // current function
     fn func(&self) -> C {
-        *self.func.borrow().last().unwrap()
+        *self
+            .func
+            .borrow()
+            .last()
+            .expect("Vec<FnCode> is empty. forgot to trace.enter()")
     }
 
     fn parent_vec(&self) -> Vec<C> {
@@ -312,19 +330,6 @@ impl<'s, C: Code> Default for CTracer<'s, C> {
 
 // TrackParseResult ------------------------------------------------------
 
-/// Helps with keeping tracks in the parsers.
-///
-/// This can be squeezed between the call to another parser and the ?-operator.
-///
-/// Makes sure the tracer can keep track of the complete parse call tree.
-pub trait TrackParseResult<'s, 't, C: Code> {
-    type Result;
-
-    /// Translates the error code and adds the standard expect value.
-    /// Then tracks the error and marks the current function as finished.
-    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result;
-}
-
 impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, C> for ParserResult<'s, C, O> {
     type Result = Self;
 
@@ -344,9 +349,7 @@ impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
         match self {
             Ok(v) => Ok(v),
-            Err(nom::Err::Error(e)) => trace.err(e),
-            Err(nom::Err::Failure(e)) => trace.err(e),
-            Err(nom::Err::Incomplete(_)) => unreachable!(),
+            Err(e) => trace.err(e.into()),
         }
     }
 }
@@ -359,7 +362,7 @@ impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
         match self {
             Ok(v) => Ok(v),
-            Err(e) => trace.err(ParserError::nom(e)),
+            Err(e) => trace.err(e.into()),
         }
     }
 }

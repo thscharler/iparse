@@ -101,9 +101,15 @@ fn debug_enter<C: Code>(
 ) -> fmt::Result {
     match w {
         DebugWidth::Short | DebugWidth::Medium => {
-            write!(f, "{}: parse \"{}\"", v.func, v.span)
+            write!(f, "{}: parse \"{}\"", v.func, v.span.escape_default())
         }
-        DebugWidth::Long => write!(f, "{}: parse \"{}\" <<{:?}", v.func, v.span, v.parents),
+        DebugWidth::Long => write!(
+            f,
+            "{}: parse \"{}\" <<{:?}",
+            v.func,
+            v.span.escape_default(),
+            v.parents
+        ),
     }
 }
 
@@ -114,10 +120,17 @@ fn debug_step<C: Code>(
 ) -> fmt::Result {
     match w {
         DebugWidth::Short | DebugWidth::Medium => {
-            write!(f, "{}: {} \"{}\"", v.func, v.step, v.span)
+            write!(f, "{}: {} \"{}\"", v.func, v.step, v.span.escape_default())
         }
         DebugWidth::Long => {
-            write!(f, "{}: {} \"{}\" <<{:?}", v.func, v.step, v.span, v.parents)
+            write!(
+                f,
+                "{}: {} \"{}\" <<{:?}",
+                v.func,
+                v.step,
+                v.span.escape_default(),
+                v.parents
+            )
         }
     }
 }
@@ -160,7 +173,13 @@ fn debug_ok<C: Code>(f: &mut impl fmt::Write, w: DebugWidth, v: &OkTrack<'_, C>)
     match w {
         DebugWidth::Short | DebugWidth::Medium | DebugWidth::Long => {
             if !v.span.is_empty() {
-                write!(f, "{}: -> [ {}, '{}' ]", v.func, v.span, v.rest)?;
+                write!(
+                    f,
+                    "{}: -> [ {}, '{}' ]",
+                    v.func,
+                    v.span.escape_default(),
+                    v.rest.escape_default()
+                )?;
             } else {
                 write!(f, "{}: -> no match", v.func)?;
             }

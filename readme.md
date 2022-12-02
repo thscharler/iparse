@@ -288,3 +288,7 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
    }
 }
 ```
+
+## Note 5
+
+Repetition: TODO

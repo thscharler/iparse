@@ -476,7 +476,7 @@ where
     println!();
     println!(
         "when parsing '{}' in {}ns =>",
-        testn.span,
+        testn.span.escape_default(),
         testn.duration.as_nanos()
     );
     match &testn.result {
@@ -543,7 +543,7 @@ where
     println!();
     println!(
         "when parsing '{}' in {}ns =>",
-        testn.span,
+        testn.span.escape_default(),
         testn.duration.as_nanos()
     );
 

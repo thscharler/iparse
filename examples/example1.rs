@@ -3,7 +3,7 @@ use iparse::error::ParserError;
 use iparse::span::span_union;
 use iparse::test::{test_parse, Trace};
 use iparse::tracer::CTracer;
-use iparse::tracer::TrackParseResult;
+use iparse::TrackParseResult;
 use iparse::{
     Code, IntoParserResult, LookAhead, Parser, ParserNomResult, ParserResult, Span, Tracer,
 };
@@ -116,7 +116,7 @@ pub fn parse_a(rest: Span<'_>) -> IParserResult<'_, TerminalA> {
             },
         )),
         Err(nom::Err::Error(e)) if e.is_kind(nom::error::ErrorKind::Tag) => {
-            Err(e.as_err(ICTerminalA))
+            Err(e.into_code(ICTerminalA))
         }
         Err(e) => Err(e.into()),
     }

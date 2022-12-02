@@ -33,8 +33,23 @@ impl<'s, C: Code> ParserError<'s, C> {
         }
     }
 
+    /// New error.
+    pub fn new_with_nom(code: C, nom_code: ErrorKind, span: Span<'s>) -> Self {
+        Self {
+            code,
+            span,
+            tracing: false,
+            nom: vec![Nom {
+                kind: nom_code,
+                span,
+            }],
+            suggest: Vec::new(),
+            expect: Vec::new(),
+        }
+    }
+
     /// Convert to a new error code.
-    pub fn as_err(mut self, code: C) -> Self {
+    pub fn into_code(mut self, code: C) -> Self {
         self.code = code;
         self
     }
@@ -81,15 +96,6 @@ impl<'s, C: Code> ParserError<'s, C> {
             }
         }
         false
-    }
-
-    /// Create a ParseOFError from a nom::Err
-    pub fn nom(e: nom::Err<nom::error::Error<Span<'s>>>) -> ParserError<'s, C> {
-        match e {
-            nom::Err::Error(e) => ParserError::new(C::NOM_ERROR, e.input),
-            nom::Err::Failure(e) => ParserError::new(C::NOM_FAILURE, e.input),
-            nom::Err::Incomplete(_) => unreachable!(),
-        }
     }
 
     /// ParseIncomplete variant.
@@ -158,8 +164,8 @@ where
 {
     fn from(e: nom::Err<nom::error::Error<Span<'s>>>) -> Self {
         match e {
-            nom::Err::Error(e) => ParserError::new(C::NOM_ERROR, e.input),
-            nom::Err::Failure(e) => ParserError::new(C::NOM_FAILURE, e.input),
+            nom::Err::Error(e) => ParserError::new_with_nom(C::NOM_ERROR, e.code, e.input),
+            nom::Err::Failure(e) => ParserError::new_with_nom(C::NOM_FAILURE, e.code, e.input),
             nom::Err::Incomplete(_) => unreachable!(),
         }
     }

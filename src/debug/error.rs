@@ -16,14 +16,14 @@ impl<'s, C: Code> Debug for ParserError<'s, C> {
 
 impl<'s, C: Code> Debug for Suggest<'s, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:\"{}\"", self.code, self.span)?;
+        write!(f, "{}:\"{}\"", self.code, self.span.escape_default())?;
         Ok(())
     }
 }
 
 impl<'s, C: Code> Debug for Expect<'s, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:\"{}\"", self.code, self.span)?;
+        write!(f, "{}:\"{}\"", self.code, self.span.escape_default())?;
         Ok(())
     }
 }
@@ -61,7 +61,7 @@ fn debug_parse_of_error_medium<'s, C: Code>(
         for n in &err.nom {
             write!(f, " {:?}:\"{}\"", n.kind, n.span)?;
         }
-        writeln!(f);
+        writeln!(f)?;
     }
     if !err.expect.is_empty() {
         let mut sorted = err.expect.clone();

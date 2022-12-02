@@ -149,3 +149,16 @@ pub trait Tracer<'s, C: Code> {
         filter: FilterFn<'_, C>,
     ) -> fmt::Result;
 }
+
+/// Can be used to track the results of calls to another Parser or nom-parser.
+///
+pub trait TrackParseResult<'s, 't, C: Code> {
+    type Result;
+
+    /// Translates the error code and adds the standard expect value.
+    /// Then tracks the error and marks the current function as finished.
+    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result;
+
+    // Translates the error code and adds the standard expect value.
+    // Then tracks the error and marks the current function as finished.
+}
