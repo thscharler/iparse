@@ -339,6 +339,13 @@ impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, C> for ParserResult<'s, C, O> 
             Err(e) => trace.err(e),
         }
     }
+
+    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result {
+        match self {
+            Ok(_) => self,
+            Err(e) => trace.err(e.into_code(code)),
+        }
+    }
 }
 
 impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
@@ -352,6 +359,16 @@ impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
             Err(e) => trace.err(e.into()),
         }
     }
+
+    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let pe: ParserError<'s, C> = e.into();
+                trace.err(pe.into_code(code))
+            }
+        }
+    }
 }
 
 impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
@@ -363,6 +380,16 @@ impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
         match self {
             Ok(v) => Ok(v),
             Err(e) => trace.err(e.into()),
+        }
+    }
+
+    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let pe: ParserError<'s, C> = e.into();
+                trace.err(pe.into_code(code))
+            }
         }
     }
 }

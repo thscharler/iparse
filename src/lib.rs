@@ -159,6 +159,7 @@ pub trait TrackParseResult<'s, 't, C: Code> {
     /// Then tracks the error and marks the current function as finished.
     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result;
 
-    // Translates the error code and adds the standard expect value.
-    // Then tracks the error and marks the current function as finished.
+    /// Translates the error code and adds the standard expect value.
+    /// Then tracks the error and marks the current function as finished.
+    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result;
 }
