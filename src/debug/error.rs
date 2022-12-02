@@ -32,11 +32,16 @@ fn debug_parse_of_error_short<'s, C: Code>(
     f: &mut impl fmt::Write,
     err: &ParserError<'s, C>,
 ) -> fmt::Result {
-    write!(f, "ParserError {} \"{}\"", err.code, err.span)?;
+    write!(
+        f,
+        "ParserError {} \"{}\"",
+        err.code,
+        err.span.escape_default()
+    )?;
     if !err.nom.is_empty() {
         write!(f, " nom=")?;
         for n in &err.nom {
-            write!(f, " {:?}:\"{}\"", n.kind, n.span)?;
+            write!(f, " {:?}:\"{}\"", n.kind, n.span.escape_default())?;
         }
     }
     if !err.expect.is_empty() {
@@ -55,13 +60,18 @@ fn debug_parse_of_error_medium<'s, C: Code>(
     f: &mut impl fmt::Write,
     err: &ParserError<'s, C>,
 ) -> fmt::Result {
-    writeln!(f, "ParserError {} \"{}\"", err.code, err.span)?;
+    writeln!(
+        f,
+        "ParserError {} \"{}\"",
+        err.code,
+        err.span.escape_default()
+    )?;
     if !err.nom.is_empty() {
         writeln!(f, "nom=")?;
         for n in &err.nom {
-            write!(f, " {:?}:\"{}\"", n.kind, n.span)?;
+            indent(f, 1)?;
+            writeln!(f, "{:?}:\"{}\"", n.kind, n.span.escape_default())?;
         }
-        writeln!(f)?;
     }
     if !err.expect.is_empty() {
         let mut sorted = err.expect.clone();
@@ -89,7 +99,7 @@ fn debug_parse_of_error_medium<'s, C: Code>(
 
         for (g_off, subgrp) in grp {
             let first = subgrp.first().unwrap();
-            writeln!(f, "expect {}:\"{}\" ", g_off, first.span)?;
+            writeln!(f, "expect {}:\"{}\" ", g_off, first.span.escape_default())?;
             debug_expect2_medium(f, &subgrp, 1)?;
         }
     }
@@ -119,7 +129,7 @@ fn debug_parse_of_error_medium<'s, C: Code>(
 
         for (g_off, subgrp) in grp {
             let first = subgrp.first().unwrap();
-            writeln!(f, "suggest {}:\"{}\"", g_off, first.span)?;
+            writeln!(f, "suggest {}:\"{}\"", g_off, first.span.escape_default())?;
             debug_suggest2_medium(f, &subgrp, 1)?;
         }
     }
@@ -131,13 +141,18 @@ fn debug_parse_of_error_long<'s, C: Code>(
     f: &mut impl fmt::Write,
     err: &ParserError<'s, C>,
 ) -> fmt::Result {
-    writeln!(f, "ParserError {} \"{}\"", err.code, err.span)?;
+    writeln!(
+        f,
+        "ParserError {} \"{}\"",
+        err.code,
+        err.span.escape_default()
+    )?;
     if !err.nom.is_empty() {
         writeln!(f, "nom=")?;
         for n in &err.nom {
-            write!(f, " {:?}:\"{}\"", n.kind, n.span)?;
+            indent(f, 1)?;
+            writeln!(f, "{:?}:\"{}\"", n.kind, n.span.escape_default())?;
         }
-        writeln!(f)?;
     }
     if !err.expect.is_empty() {
         let mut sorted = err.expect.clone();
@@ -173,7 +188,7 @@ fn debug_expect2_long<C: Code>(
             "{}:{}:\"{}\"",
             exp.code,
             exp.span.location_offset(),
-            exp.span
+            exp.span.escape_default()
         )?;
         if !exp.parents.is_empty() {
             write!(f, " <")?;
@@ -244,7 +259,7 @@ fn debug_expect2_short<C: Code>(
     _ind: usize,
 ) -> fmt::Result {
     for exp in exp_vec {
-        write!(f, "{}:\"{}\"", exp.code, exp.span)?;
+        write!(f, "{}:\"{}\"", exp.code, exp.span.escape_default())?;
         if !exp.parents.is_empty() {
             write!(f, " <")?;
             for (i, p) in exp.parents.iter().enumerate() {
@@ -274,7 +289,7 @@ fn debug_suggest2_long<C: Code>(
             "{}:{}:\"{}\"",
             sug.code,
             sug.span.location_offset(),
-            sug.span
+            sug.span.escape_default()
         )?;
         if !sug.parents.is_empty() {
             write!(f, " <")?;
@@ -345,7 +360,7 @@ fn debug_suggest2_short<C: Code>(
     _ind: usize,
 ) -> fmt::Result {
     for sug in sug_vec {
-        write!(f, "{}:\"{}\"", sug.code, sug.span)?;
+        write!(f, "{}:\"{}\"", sug.code, sug.span.escape_default())?;
         if !sug.parents.is_empty() {
             write!(f, " <")?;
             for (i, p) in sug.parents.iter().enumerate() {

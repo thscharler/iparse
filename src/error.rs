@@ -111,14 +111,14 @@ impl<'s, C: Code> Display for ParserError<'s, C> {
             if i > 0 {
                 write!(f, " ")?;
             }
-            write!(f, "{}:\"{}\"", exp.code, exp.span)?;
+            write!(f, "{}:\"{}\"", exp.code, exp.span.escape_default())?;
         }
         // no suggest
         write!(
             f,
             " for span {} \"{}\"",
             self.span.location_offset(),
-            self.span
+            self.span.escape_default()
         )?;
         Ok(())
     }

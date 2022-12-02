@@ -326,7 +326,12 @@ impl<'a, C: Code> TestFail<C> for ParserResult<'a, C, (Span<'a>, Span<'a>)> {
             Err(e) => {
                 if e.code != kind {
                     println!("Failed with the wrong ErrorKind:");
-                    println!("    '{}' => result={} <> kind={:?}", e.span, e, kind);
+                    println!(
+                        "    '{}' => result={} <> kind={:?}",
+                        e.span.escape_default(),
+                        e,
+                        kind
+                    );
                     panic!();
                 }
             }
@@ -370,7 +375,12 @@ impl<'a, C: Code> TestFail<C> for ParserResult<'a, C, (Span<'a>, (Option<Span<'a
             Err(e) => {
                 if e.code != kind {
                     println!("Failed with the wrong ErrorKind:");
-                    println!("    '{}' => result={} <> kind={:?}", e.span, e, kind);
+                    println!(
+                        "    '{}' => result={} <> kind={:?}",
+                        e.span.escape_default(),
+                        e,
+                        kind
+                    );
                     panic!();
                 }
             }
