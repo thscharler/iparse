@@ -91,7 +91,12 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
         // Freshly created error.
         if !err.tracing {
             err.tracing = true;
-            self.add_expect(err.code, err.span);
+            /// special codes are not very usefull in this position.
+            if !err.code.is_special() {
+                self.add_expect(err.code, err.span);
+            } else {
+                self.add_expect(self.func(), err.span);
+            }
         }
 
         // when backtracking we always replace the current error code.
@@ -312,7 +317,7 @@ impl<'s, C: Code> Default for CTracer<'s, C> {
 /// This can be squeezed between the call to another parser and the ?-operator.
 ///
 /// Makes sure the tracer can keep track of the complete parse call tree.
-pub trait TrackParseResult<'s, 't, C: Code, O> {
+pub trait TrackParseResult<'s, 't, C: Code> {
     type Result;
 
     /// Translates the error code and adds the standard expect value.
@@ -320,7 +325,7 @@ pub trait TrackParseResult<'s, 't, C: Code, O> {
     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result;
 }
 
-impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, C, O> for ParserResult<'s, C, O> {
+impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, C> for ParserResult<'s, C, O> {
     type Result = Self;
 
     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
@@ -331,7 +336,7 @@ impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, C, O> for ParserResult<'s, C, 
     }
 }
 
-impl<'s, 't, C: Code> TrackParseResult<'s, 't, C, Span<'s>>
+impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
     for Result<(Span<'s>, Span<'s>), nom::Err<ParserError<'s, C>>>
 {
     type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;
@@ -346,28 +351,18 @@ impl<'s, 't, C: Code> TrackParseResult<'s, 't, C, Span<'s>>
     }
 }
 
-// pub trait TrackParseResult<'s, 't, O, C: Code> {
-//     type Result;
-//
-//     /// Translates the error code and adds the standard expect value.
-//     /// Then tracks the error and marks the current function as finished.
-//     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result;
-// }
-//
-// impl<'s, 't, C: Code> TrackParseResult<'s, 't, Span<'s>, C>
-//     for Result<(Span<'s>, Span<'s>), nom::Err<ParserError<'s, C>>>
-// {
-//     type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;
-//
-//     fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
-//         match self {
-//             Ok(v) => Ok(v),
-//             Err(nom::Err::Error(e)) => trace.err(e),
-//             Err(nom::Err::Failure(e)) => trace.err(e),
-//             Err(nom::Err::Incomplete(_)) => unreachable!(),
-//         }
-//     }
-// }
+impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
+    for Result<(Span<'s>, Span<'s>), nom::Err<nom::error::Error<Span<'s>>>>
+{
+    type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;
+
+    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => trace.err(ParserError::nom(e)),
+        }
+    }
+}
 
 // Track -----------------------------------------------------------------
 
