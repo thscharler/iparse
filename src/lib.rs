@@ -12,7 +12,6 @@ use crate::tracer::Track;
 use nom_locate::LocatedSpan;
 use std::fmt;
 use std::fmt::{Debug, Display};
-use std::ops::BitOr;
 
 /// Standard input type.
 pub type Span<'s> = LocatedSpan<&'s str>;
@@ -46,24 +45,14 @@ where
     fn into_parser_err(self, span: Span<'s>) -> ParserResult<'s, C, O>;
 }
 
-/// Result of a look-ahead. Can be chained with | (bit-or).
-/// Can be converted from Result for use with nom.
-#[derive(PartialEq, Eq)]
-pub enum LookAhead {
-    /// Do parse this branch.
-    Parse,
-    /// Don't parse this branch.
-    Break,
-}
-
 /// Trait for one parser function.
 pub trait Parser<'s, O, C: Code> {
     /// Function and error code.
     fn id() -> C;
 
     /// Possible look-ahead.
-    fn lah(_: Span<'s>) -> LookAhead {
-        LookAhead::Parse
+    fn lah(_: Span<'s>) -> bool {
+        true
     }
 
     /// Parses the expression.
@@ -73,26 +62,73 @@ pub trait Parser<'s, O, C: Code> {
     ) -> ParserResult<'s, C, (Span<'s>, O)>;
 }
 
-/// Compose look ahead values. BitOr seems plausible.
-impl BitOr for LookAhead {
-    type Output = LookAhead;
+/// Treats the result of a parser as optional.
+///
+/// The exact return value is defined in the impl, but should include some Option<..>.
+pub trait ParseAsOptional<'s, C: Code, O> {
+    /// Returns a ParserResult.
+    fn optional(self) -> ParserResult<'s, C, O>;
+    /// Returns a ParserResult.
+    /// The original ParserError can be processed with the closure.
+    fn optional_with(self, err_op: &dyn Fn(ParserError<'s, C>)) -> ParserResult<'s, C, O>;
+}
 
-    fn bitor(self, rhs: Self) -> Self::Output {
-        if self == LookAhead::Parse || rhs == LookAhead::Parse {
-            LookAhead::Parse
-        } else {
-            LookAhead::Break
+impl<'s, C: Code, O> ParseAsOptional<'s, C, (Span<'s>, Option<O>)>
+    for ParserResult<'s, C, (Span<'s>, O)>
+{
+    /// Returns None for any Err
+    fn optional(self) -> ParserResult<'s, C, (Span<'s>, Option<O>)> {
+        match self {
+            Ok((rest, tok)) => Ok((rest, Some(tok))),
+            Err(e) => Ok((e.span, None)),
+        }
+    }
+
+    /// Returns None for any Err, calls err_op.
+    fn optional_with(
+        self,
+        err_op: &dyn Fn(ParserError<'s, C>),
+    ) -> ParserResult<'s, C, (Span<'s>, Option<O>)> {
+        match self {
+            Ok((rest, tok)) => Ok((rest, Some(tok))),
+            Err(e) => {
+                let span = e.span;
+                err_op(e);
+                Ok((span, None))
+            }
         }
     }
 }
 
-/// Any Ok() result means parse, break otherwise.
-impl<T, E> From<Result<T, E>> for LookAhead {
-    fn from(e: Result<T, E>) -> Self {
-        if e.is_ok() {
-            LookAhead::Parse
-        } else {
-            LookAhead::Break
+impl<'s, C: Code> ParseAsOptional<'s, C, (Span<'s>, Option<Span<'s>>)> for ParserNomResult<'s, C> {
+    /// Returns nom::Err::Error as None.
+    /// Returns nom::Err::Failure as Err.
+    /// Panics for nom::Err::Incomplete.
+    fn optional(self) -> ParserResult<'s, C, (Span<'s>, Option<Span<'s>>)> {
+        match self {
+            Ok((rest, tok)) => Ok((rest, Some(tok))),
+            Err(nom::Err::Error(e)) => Ok((e.span, None)),
+            Err(nom::Err::Failure(e)) => Err(e.into()),
+            Err(nom::Err::Incomplete(_)) => unreachable!(),
+        }
+    }
+
+    /// Returns nom::Err::Error as None and calls err_op.
+    /// Returns nom::Err::Failure as Err.
+    /// Panics for nom::Err::Incomplete.
+    fn optional_with(
+        self,
+        err_op: &dyn Fn(ParserError<'s, C>),
+    ) -> ParserResult<'s, C, (Span<'s>, Option<Span<'s>>)> {
+        match self {
+            Ok((rest, tok)) => Ok((rest, Some(tok))),
+            Err(nom::Err::Error(e)) => {
+                let span = e.span;
+                err_op(e);
+                Ok((span, None))
+            }
+            Err(nom::Err::Failure(e)) => Err(e),
+            Err(nom::Err::Incomplete(_)) => unreachable!(),
         }
     }
 }
