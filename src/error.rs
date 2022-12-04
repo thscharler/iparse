@@ -14,11 +14,7 @@ pub struct ParserError<'s, C: Code> {
     /// Flag for Tracer.
     pub tracing: bool,
     /// Collected nom errors if any.
-    pub nom: Vec<Nom<'s>>,
-    /// Suggest values.
-    pub suggest: Vec<Suggest<'s, C>>,
-    /// Expect values.
-    pub expect: Vec<Expect<'s, C>>,
+    pub hints: Vec<Hints<'s, C>>,
 }
 
 impl<'s, C: Code> ParserError<'s, C> {
@@ -28,9 +24,7 @@ impl<'s, C: Code> ParserError<'s, C> {
             code,
             span,
             tracing: false,
-            nom: Vec::new(),
-            suggest: Vec::new(),
-            expect: Vec::new(),
+            hints: Vec::new(),
         }
     }
 
@@ -40,12 +34,10 @@ impl<'s, C: Code> ParserError<'s, C> {
             code,
             span,
             tracing: false,
-            nom: vec![Nom {
+            hints: vec![Hints::Nom(Nom {
                 kind: nom_code,
                 span,
-            }],
-            suggest: Vec::new(),
-            expect: Vec::new(),
+            })],
         }
     }
 
@@ -67,9 +59,11 @@ impl<'s, C: Code> ParserError<'s, C> {
 
     /// Is this one of the nom errorkind codes?
     pub fn is_kind(&self, kind: ErrorKind) -> bool {
-        for n in &self.nom {
-            if n.kind == kind {
-                return true;
+        for n in &self.hints {
+            if let Hints::Nom(n) = n {
+                if n.kind == kind {
+                    return true;
+                }
             }
         }
         false
@@ -77,9 +71,11 @@ impl<'s, C: Code> ParserError<'s, C> {
 
     /// Was this one of the expected errors.
     pub fn is_expected(&self, code: C) -> bool {
-        for exp in &self.expect {
-            if exp.code == code {
-                return true;
+        for exp in &self.hints {
+            if let Hints::Expect(exp) = exp {
+                if exp.code == code {
+                    return true;
+                }
             }
         }
         false
@@ -87,11 +83,13 @@ impl<'s, C: Code> ParserError<'s, C> {
 
     /// Was this one of the expected errors, and is in the call stack of parent?
     pub fn is_expected2(&self, code: C, parent: C) -> bool {
-        for exp in &self.expect {
-            if exp.code == code {
-                for par in &exp.parents {
-                    if *par == parent {
-                        return true;
+        for exp in &self.hints {
+            if let Hints::Expect(exp) = exp {
+                if exp.code == code {
+                    for par in &exp.parents {
+                        if *par == parent {
+                            return true;
+                        }
                     }
                 }
             }
@@ -103,12 +101,56 @@ impl<'s, C: Code> ParserError<'s, C> {
     pub fn parse_incomplete(span: Span<'s>) -> ParserError<'s, C> {
         ParserError::new(C::PARSE_INCOMPLETE, span)
     }
+
+    pub fn nom(&self) -> Vec<&Nom<'s>> {
+        self.hints
+            .iter()
+            .filter_map(|v| match v {
+                Hints::Nom(n) => Some(n),
+                _ => None,
+            })
+            .collect()
+    }
+
+    pub fn append_expect(&mut self, exp: Vec<Expect<'s, C>>) {
+        for exp in exp.into_iter() {
+            self.hints.push(Hints::Expect(exp));
+        }
+    }
+
+    pub fn append_suggest(&mut self, sug: Vec<Suggest<'s, C>>) {
+        for sug in sug.into_iter() {
+            self.hints.push(Hints::Suggest(sug));
+        }
+    }
+
+    pub fn expect(&self) -> Vec<&Expect<'s, C>> {
+        self.hints
+            .iter()
+            .filter_map(|v| match v {
+                Hints::Expect(n) => Some(n),
+                _ => None,
+            })
+            .collect()
+    }
+
+    pub fn suggest(&self) -> Vec<&Suggest<'s, C>> {
+        self.hints
+            .iter()
+            .filter_map(|v| match v {
+                Hints::Suggest(n) => Some(n),
+                _ => None,
+            })
+            .collect()
+    }
 }
 
 impl<'s, C: Code> Display for ParserError<'s, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} expects ", self.code)?;
-        for (i, exp) in self.expect.iter().enumerate() {
+
+        let expect = self.expect();
+        for (i, exp) in expect.iter().enumerate() {
             if i > 0 {
                 write!(f, " ")?;
             }
@@ -139,14 +181,12 @@ impl<'s, C: Code> nom::error::ParseError<Span<'s>> for ParserError<'s, C> {
             code: C::NOM_ERROR,
             span,
             tracing: false,
-            nom: vec![Nom { kind, span }],
-            suggest: Vec::new(),
-            expect: Vec::new(),
+            hints: vec![Hints::Nom(Nom { kind, span })],
         }
     }
 
     fn append(input: Span<'s>, kind: ErrorKind, mut other: Self) -> Self {
-        other.nom.push(Nom { kind, span: input });
+        other.hints.push(Hints::Nom(Nom { kind, span: input }));
         other
     }
 }
@@ -248,6 +288,12 @@ pub enum DebugWidth {
     Medium,
     /// Debug flag, can be set with width=2.
     Long,
+}
+
+pub enum Hints<'s, C: Code> {
+    Nom(Nom<'s>),
+    Suggest(Suggest<'s, C>),
+    Expect(Expect<'s, C>),
 }
 
 /// Data gathered from nom.

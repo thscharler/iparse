@@ -1,6 +1,7 @@
 use crate::debug::rtracer::debug_rtracer;
-use crate::error::{DebugWidth, Expect, ParserError, Suggest};
+use crate::error::{DebugWidth, Expect, Hints, ParserError, Suggest};
 use crate::{Code, ParserResult, Span, Tracer};
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -43,24 +44,29 @@ impl<'s, C: Code> Tracer<'s, C> for RTracer<'s, C> {
 
     /// Adds a suggestion for the current stack frame.
     fn suggest(&self, suggest: C, span: Span<'s>) {
-        // self.debug(format!(
-        //     "suggest {}:\"{}\" ...",
-        //     suggest,
-        //     restrict(DebugWidth::Medium, span)
-        // ));
         self.add_suggest(suggest, span);
     }
 
     /// Keep track of this error.
     fn stash(&self, err: ParserError<'s, C>) {
-        // self.debug(format!(
-        //     "expect {}:\"{}\" ...",
-        //     err.code,
-        //     restrict(DebugWidth::Medium, err.span)
-        // ));
         self.add_expect(err.code, err.span);
-        self.append_expect(err.expect);
-        self.append_suggest(err.suggest);
+
+        let mut expect = self.expect.borrow_mut();
+        let expect_vec = &mut expect.last_mut().expect("Vec<Expect> is empty").list;
+        let mut suggest = self.suggest.borrow_mut();
+        let suggest_vec = &mut suggest.last_mut().expect("Vec<Suggest> is empty").list;
+
+        for hint in err.hints.into_iter() {
+            match hint {
+                Hints::Nom(_) => {}
+                Hints::Suggest(v) => {
+                    suggest_vec.push(v);
+                }
+                Hints::Expect(v) => {
+                    expect_vec.push(v);
+                }
+            }
+        }
     }
 
     /// Write a track for an ok result.
@@ -73,7 +79,7 @@ impl<'s, C: Code> Tracer<'s, C> for RTracer<'s, C> {
         self.track_ok(rest, span);
 
         let expect = self.pop_expect();
-        self.track_expect(Usage::Drop, expect.list);
+        self.track_expect(Usage::Drop, Cow::Owned(expect.list));
         let suggest = self.pop_suggest();
         // Keep suggests, sort them out later.
         // Drop at the toplevel if no error occurs?
@@ -90,11 +96,12 @@ impl<'s, C: Code> Tracer<'s, C> for RTracer<'s, C> {
 
     /// Write a track for an error.
     fn err<'t, T>(&'t self, mut err: ParserError<'s, C>) -> ParserResult<'s, C, T> {
-        // Freshly created error.
+        // Freshly created error needs to be recorded before we overwrite the code.
         if !err.tracing {
             err.tracing = true;
             // special codes are not very usefull in this position.
             if !err.code.is_special() {
+                // todo: should be the job of the concrete parser
                 self.add_expect(err.code, err.span);
             } else {
                 self.add_expect(self.func(), err.span);
@@ -104,13 +111,13 @@ impl<'s, C: Code> Tracer<'s, C> for RTracer<'s, C> {
         // when backtracking we always replace the current error code.
         err.code = self.func();
 
-        let mut exp = self.pop_expect();
-        self.track_expect(Usage::Use, exp.list.clone());
-        err.expect.append(&mut exp.list);
+        let exp = self.pop_expect();
+        self.track_expect(Usage::Use, Cow::Borrowed(&exp.list));
+        err.append_expect(exp.list);
 
-        let mut sug = self.pop_suggest();
-        self.track_suggest(Usage::Use, sug.list.clone());
-        err.suggest.append(&mut sug.list);
+        let sug = self.pop_suggest();
+        self.track_suggest(Usage::Use, Cow::Borrowed(&sug.list));
+        err.append_suggest(sug.list);
 
         self.track_error(&err);
 
@@ -158,15 +165,6 @@ impl<'s, C: Code> RTracer<'s, C> {
                 span,
                 parents: self.parent_vec(),
             })
-    }
-
-    fn append_expect(&self, mut expect: Vec<Expect<'s, C>>) {
-        self.expect
-            .borrow_mut()
-            .last_mut()
-            .expect("Vec<Expect> is empty")
-            .list
-            .append(&mut expect);
     }
 }
 
@@ -245,9 +243,9 @@ impl<'s, C: Code> RTracer<'s, C> {
 
     fn track_debug(&self, _dbg: String) {}
 
-    fn track_suggest(&self, _usage: Usage, _suggest: Vec<Suggest<'s, C>>) {}
+    fn track_suggest(&self, _usage: Usage, _suggest: Cow<Vec<Suggest<'s, C>>>) {}
 
-    fn track_expect(&self, _usage: Usage, _expect: Vec<Expect<'s, C>>) {}
+    fn track_expect(&self, _usage: Usage, _expect: Cow<Vec<Expect<'s, C>>>) {}
 
     fn track_ok(&self, _rest: Span<'s>, _span: Span<'s>) {}
 

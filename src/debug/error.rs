@@ -41,9 +41,11 @@ fn debug_parse_of_error_short<'s, C: Code>(
         err.code,
         restrict(DebugWidth::Short, err.span)
     )?;
-    if !err.nom.is_empty() {
+
+    let nom = err.nom();
+    if !nom.is_empty() {
         write!(f, " nom=")?;
-        for n in &err.nom {
+        for n in &nom {
             write!(
                 f,
                 " {:?}:\"{}\"",
@@ -52,13 +54,17 @@ fn debug_parse_of_error_short<'s, C: Code>(
             )?;
         }
     }
-    if !err.expect.is_empty() {
+
+    let expect = err.expect();
+    if !expect.is_empty() {
         write!(f, " expect=")?;
-        debug_expect2_short(f, &err.expect, 1)?;
+        debug_expect2_short(f, &expect, 1)?;
     }
-    if !err.suggest.is_empty() {
+
+    let suggest = err.suggest();
+    if !suggest.is_empty() {
         write!(f, " suggest=")?;
-        debug_suggest2_short(f, &err.suggest, 1)?;
+        debug_suggest2_short(f, &suggest, 1)?;
     }
 
     Ok(())
@@ -74,9 +80,11 @@ fn debug_parse_of_error_medium<'s, C: Code>(
         err.code,
         restrict(DebugWidth::Medium, err.span)
     )?;
-    if !err.nom.is_empty() {
+
+    let nom = err.nom();
+    if !nom.is_empty() {
         writeln!(f, "nom=")?;
-        for n in &err.nom {
+        for n in &nom {
             indent(f, 1)?;
             writeln!(
                 f,
@@ -86,8 +94,10 @@ fn debug_parse_of_error_medium<'s, C: Code>(
             )?;
         }
     }
-    if !err.expect.is_empty() {
-        let mut sorted = err.expect.clone();
+
+    let expect = err.expect();
+    if !expect.is_empty() {
+        let mut sorted = expect.clone();
         sorted.reverse();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
 
@@ -104,7 +114,7 @@ fn debug_parse_of_error_medium<'s, C: Code>(
                 grp_offset = exp.span.location_offset();
             }
 
-            subgrp.push(exp);
+            subgrp.push(*exp);
         }
         if !subgrp.is_empty() {
             grp.push((grp_offset, subgrp));
@@ -121,8 +131,10 @@ fn debug_parse_of_error_medium<'s, C: Code>(
             debug_expect2_medium(f, &subgrp, 1)?;
         }
     }
-    if !err.suggest.is_empty() {
-        let mut sorted = err.suggest.clone();
+
+    let suggest = err.suggest();
+    if !suggest.is_empty() {
+        let mut sorted = suggest.clone();
         sorted.reverse();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
 
@@ -139,7 +151,7 @@ fn debug_parse_of_error_medium<'s, C: Code>(
                 grp_offset = exp.span.location_offset();
             }
 
-            subgrp.push(exp);
+            subgrp.push(*exp);
         }
         if !subgrp.is_empty() {
             grp.push((grp_offset, subgrp));
@@ -170,23 +182,29 @@ fn debug_parse_of_error_long<'s, C: Code>(
         err.code,
         restrict(DebugWidth::Long, err.span)
     )?;
-    if !err.nom.is_empty() {
+
+    let nom = err.nom();
+    if !nom.is_empty() {
         writeln!(f, "nom=")?;
-        for n in &err.nom {
+        for n in &nom {
             indent(f, 1)?;
             writeln!(f, "{:?}:\"{}\"", n.kind, restrict(DebugWidth::Long, n.span))?;
         }
     }
-    if !err.expect.is_empty() {
-        let mut sorted = err.expect.clone();
+
+    let expect = err.expect();
+    if !expect.is_empty() {
+        let mut sorted = expect.clone();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
 
         writeln!(f, "expect=")?;
         debug_expect2_long(f, &sorted, 1)?;
     }
-    if !err.suggest.is_empty() {
+
+    let suggest = err.suggest();
+    if !suggest.is_empty() {
         writeln!(f, "suggest=")?;
-        debug_suggest2_long(f, &err.suggest, 1)?;
+        debug_suggest2_long(f, &suggest, 1)?;
     }
 
     Ok(())
@@ -201,7 +219,7 @@ fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
 
 fn debug_expect2_long<C: Code>(
     f: &mut impl fmt::Write,
-    exp_vec: &Vec<Expect<'_, C>>,
+    exp_vec: &Vec<&Expect<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
     for exp in exp_vec {
@@ -278,7 +296,7 @@ fn debug_expect2_medium<C: Code>(
 
 fn debug_expect2_short<C: Code>(
     f: &mut impl fmt::Write,
-    exp_vec: &Vec<Expect<'_, C>>,
+    exp_vec: &Vec<&Expect<'_, C>>,
     _ind: usize,
 ) -> fmt::Result {
     for exp in exp_vec {
@@ -307,7 +325,7 @@ fn debug_expect2_short<C: Code>(
 
 fn debug_suggest2_long<C: Code>(
     f: &mut impl fmt::Write,
-    sug_vec: &Vec<Suggest<'_, C>>,
+    sug_vec: &Vec<&Suggest<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
     for sug in sug_vec {
@@ -384,7 +402,7 @@ fn debug_suggest2_medium<C: Code>(
 
 fn debug_suggest2_short<C: Code>(
     f: &mut impl fmt::Write,
-    sug_vec: &Vec<Suggest<'_, C>>,
+    sug_vec: &Vec<&Suggest<'_, C>>,
     _ind: usize,
 ) -> fmt::Result {
     for sug in sug_vec {

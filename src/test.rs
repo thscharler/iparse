@@ -503,7 +503,11 @@ where
             }
             Err(e) => {
                 if !e.is_expected(code) {
-                    println!("FAIL: {:?} is not an expected token. {:?}", code, e.expect);
+                    println!(
+                        "FAIL: {:?} is not an expected token. {:?}",
+                        code,
+                        e.expect()
+                    );
                     self.flag_fail();
                 }
             }
@@ -524,7 +528,11 @@ where
             }
             Err(e) => {
                 if !e.is_expected2(code, parent) {
-                    println!("FAIL: {:?} is not an expected token. {:?}", code, e.expect);
+                    println!(
+                        "FAIL: {:?} is not an expected token. {:?}",
+                        code,
+                        e.expect()
+                    );
                     self.flag_fail();
                 }
             }
