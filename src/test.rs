@@ -516,6 +516,40 @@ where
 }
 
 /// Dumps the Result data.
+pub struct Timing;
+
+impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for Timing
+where
+    E: Debug,
+    O: Debug,
+{
+    fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
+        timing(testn)
+    }
+}
+
+fn timing<'s, P, O, E>(testn: &Test<P, Span<'s>, (Span<'s>, O), E>)
+where
+    E: Debug,
+    O: Debug,
+{
+    println!();
+    println!(
+        "when parsing '{}' in {} =>",
+        restrict(DebugWidth::Medium, testn.span),
+        humantime::format_duration(testn.duration)
+    );
+    match &testn.result {
+        Ok((_rest, _token)) => {
+            println!("OK");
+        }
+        Err(_e) => {
+            println!("ERROR");
+        }
+    }
+}
+
+/// Dumps the Result data.
 pub struct Dump;
 
 impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for Dump
@@ -535,9 +569,9 @@ where
 {
     println!();
     println!(
-        "when parsing '{}' in {}ns =>",
+        "when parsing '{}' in {} =>",
         restrict(DebugWidth::Medium, testn.span),
-        testn.duration.as_nanos()
+        humantime::format_duration(testn.duration)
     );
     match &testn.result {
         Ok((rest, token)) => {
@@ -602,9 +636,9 @@ where
 
     println!();
     println!(
-        "when parsing '{}' in {}ns =>",
+        "when parsing '{}' in {} =>",
         restrict(DebugWidth::Medium, testn.span),
-        testn.duration.as_nanos()
+        humantime::format_duration(testn.duration)
     );
 
     let trace = &testn.x.trace;
@@ -667,9 +701,9 @@ where
 
     println!();
     println!(
-        "when parsing '{}' in {}ns =>",
+        "when parsing '{}' in {} =>",
         restrict(DebugWidth::Medium, testn.span),
-        testn.duration.as_nanos()
+        humantime::format_duration(testn.duration)
     );
 
     let trace = &testn.x.trace;
