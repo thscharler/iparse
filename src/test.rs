@@ -669,6 +669,7 @@ where
     O: Debug,
     C: Code,
 {
+    #[track_caller]
     fn report(&self, test: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>) {
         if test.fail.get() {
             trace(test);

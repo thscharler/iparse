@@ -134,6 +134,34 @@ impl<'s, C: Code> ParserError<'s, C> {
             .collect()
     }
 
+    /// Get Expect grouped by offset into the string, starting with max first.
+    pub fn expect_grouped(&self) -> Vec<(usize, Vec<&Expect<'s, C>>)> {
+        let mut sorted = self.expect().clone();
+        sorted.reverse();
+        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
+
+        // per offset
+        let mut grp_offset = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_offset() != grp_offset {
+                if !subgrp.is_empty() {
+                    grp.push((grp_offset, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_offset = exp.span.location_offset();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_offset, subgrp));
+        }
+
+        grp
+    }
+
     pub fn suggest(&self) -> Vec<&Suggest<'s, C>> {
         self.hints
             .iter()
@@ -142,6 +170,34 @@ impl<'s, C: Code> ParserError<'s, C> {
                 _ => None,
             })
             .collect()
+    }
+
+    /// Get Suggest grouped by offset into the string, starting with max first.
+    pub fn suggest_grouped(&self) -> Vec<(usize, Vec<&Suggest<'s, C>>)> {
+        let mut sorted = self.suggest().clone();
+        sorted.reverse();
+        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
+
+        // per offset
+        let mut grp_offset = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_offset() != grp_offset {
+                if !subgrp.is_empty() {
+                    grp.push((grp_offset, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_offset = exp.span.location_offset();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_offset, subgrp));
+        }
+
+        grp
     }
 }
 

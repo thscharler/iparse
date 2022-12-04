@@ -19,6 +19,7 @@ name = "iparse"
 version = "0.1.0"
 dependencies = [
  "humantime",
+ "memchr",
  "nom",
  "nom_locate",
 ]
