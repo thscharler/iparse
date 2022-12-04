@@ -62,14 +62,8 @@ where
 }
 
 /// Result reporting.
-pub trait Report<P, I, O, E>
-where
-    I: Debug,
-    O: Debug,
-    E: Debug,
-{
-    /// Do something.
-    fn report(testn: &Test<P, I, O, E>);
+pub trait Report<T> {
+    fn report(&self, test: &T);
 }
 
 /// Transform a test-fn so that it can take Option values.
@@ -345,8 +339,8 @@ where
     ///
     /// Panics if any test failed.
     #[track_caller]
-    pub fn q<R: Report<P, I, O, E>>(&self) {
-        R::report(self);
+    pub fn q(&self, r: &dyn Report<Self>) {
+        r.report(self);
     }
 }
 
@@ -578,49 +572,45 @@ pub struct TestNoTracer<'s, C: Code> {
 /// Dumps the Result data if any test failed.
 pub struct CheckDump;
 
-impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for CheckDump
+impl<'s, P, O, E> Report<Test<P, Span<'s>, (Span<'s>, O), E>> for CheckDump
 where
     E: Debug,
     O: Debug,
 {
     #[track_caller]
-    fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
-        if testn.fail.get() {
-            dump(testn);
+    fn report(&self, test: &Test<P, Span<'s>, (Span<'s>, O), E>) {
+        if test.fail.get() {
+            dump(test);
             panic!("test failed")
         }
     }
 }
 
 /// Dumps the Result data.
-pub struct Timing;
+pub struct Timing(pub u32);
 
-impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for Timing
+impl<'s, P, I, O, E> Report<Test<P, I, O, E>> for Timing
 where
     E: Debug,
+    I: Debug,
     O: Debug,
 {
-    fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
-        timing(testn)
-    }
-}
-
-fn timing<'s, P, O, E>(testn: &Test<P, Span<'s>, (Span<'s>, O), E>)
-where
-    E: Debug,
-    O: Debug,
-{
-    println!(
-        "when parsing '{}' in {} =>",
-        restrict(DebugWidth::Medium, testn.span),
-        humantime::format_duration(testn.duration)
-    );
-    match &testn.result {
-        Ok((_rest, _token)) => {
-            println!("OK");
-        }
-        Err(_e) => {
-            println!("ERROR");
+    fn report(&self, test: &Test<P, I, O, E>) {
+        println!(
+            "when parsing '{}' in {} =>",
+            restrict(
+                DebugWidth::Medium,
+                format!("{:?}", test.span).as_str().into()
+            ),
+            humantime::format_duration(test.duration / self.0)
+        );
+        match &test.result {
+            Ok(_) => {
+                println!("OK");
+            }
+            Err(_) => {
+                println!("ERROR");
+            }
         }
     }
 }
@@ -628,17 +618,17 @@ where
 /// Dumps the Result data.
 pub struct Dump;
 
-impl<'s, P, O, E> Report<P, Span<'s>, (Span<'s>, O), E> for Dump
+impl<'s, P, O, E> Report<Test<P, Span<'s>, (Span<'s>, O), E>> for Dump
 where
     E: Debug,
     O: Debug,
 {
-    fn report(testn: &Test<P, Span<'s>, (Span<'s>, O), E>) {
-        dump(testn)
+    fn report(&self, test: &Test<P, Span<'s>, (Span<'s>, O), E>) {
+        dump(test)
     }
 }
 
-fn dump<'s, P, O, E>(testn: &Test<P, Span<'s>, (Span<'s>, O), E>)
+fn dump<'s, P, O, E>(test: &Test<P, Span<'s>, (Span<'s>, O), E>)
 where
     E: Debug,
     O: Debug,
@@ -646,10 +636,10 @@ where
     println!();
     println!(
         "when parsing '{}' in {} =>",
-        restrict(DebugWidth::Medium, testn.span),
-        humantime::format_duration(testn.duration)
+        restrict(DebugWidth::Medium, test.span),
+        humantime::format_duration(test.duration)
     );
-    match &testn.result {
+    match &test.result {
         Ok((rest, token)) => {
             println!("rest {}:\"{}\"", rest.location_offset(), rest);
             println!("{:0?}", token);
@@ -665,16 +655,15 @@ where
 pub struct CheckTrace;
 
 impl<'s, O, C, E, const TRACK: bool>
-    Report<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E> for CheckTrace
+    Report<Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>> for CheckTrace
 where
     E: Debug,
     O: Debug,
     C: Code,
 {
-    #[track_caller]
-    fn report(testn: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>) {
-        if testn.fail.get() {
-            trace(testn);
+    fn report(&self, test: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>) {
+        if test.fail.get() {
+            trace(test);
             panic!("test failed")
         }
     }
@@ -684,19 +673,19 @@ where
 pub struct Trace;
 
 impl<'s, O, C, E, const TRACK: bool>
-    Report<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E> for Trace
+    Report<Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>> for Trace
 where
     E: Debug,
     O: Debug,
     C: Code,
 {
-    fn report(testn: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>) {
-        trace(testn);
+    fn report(&self, test: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>) {
+        trace(test);
     }
 }
 
 fn trace<'s, O, C, E, const TRACK: bool>(
-    testn: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>,
+    test: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>,
 ) where
     O: Debug,
     E: Debug,
@@ -716,12 +705,12 @@ fn trace<'s, O, C, E, const TRACK: bool>(
     println!();
     println!(
         "when parsing '{}' in {} =>",
-        restrict(DebugWidth::Medium, testn.span),
-        humantime::format_duration(testn.duration)
+        restrict(DebugWidth::Medium, test.span),
+        humantime::format_duration(test.duration)
     );
 
-    let trace = &testn.x.trace;
-    let track_filter_r = testn.x.trace_filter.borrow();
+    let trace = &test.x.trace;
+    let track_filter_r = test.x.trace_filter.borrow();
     let track_filter = &*track_filter_r;
 
     println!(
@@ -732,7 +721,7 @@ fn trace<'s, O, C, E, const TRACK: bool>(
         }
     );
 
-    match &testn.result {
+    match &test.result {
         Ok((rest, token)) => {
             println!(
                 "rest {}:\"{}\"",
@@ -751,18 +740,18 @@ fn trace<'s, O, C, E, const TRACK: bool>(
 /// Dumps the full parser trace.
 pub struct RTrace;
 
-impl<'s, O, C, E> Report<TestRTracer<'s, C>, Span<'s>, (Span<'s>, O), E> for RTrace
+impl<'s, O, C, E> Report<Test<TestRTracer<'s, C>, Span<'s>, (Span<'s>, O), E>> for RTrace
 where
     E: Debug,
     O: Debug,
     C: Code,
 {
-    fn report(testn: &Test<TestRTracer<'s, C>, Span<'s>, (Span<'s>, O), E>) {
-        rtrace(testn);
+    fn report(&self, test: &Test<TestRTracer<'s, C>, Span<'s>, (Span<'s>, O), E>) {
+        rtrace(test);
     }
 }
 
-fn rtrace<'s, O, C, E>(testn: &Test<TestRTracer<'s, C>, Span<'s>, (Span<'s>, O), E>)
+fn rtrace<'s, O, C, E>(test: &Test<TestRTracer<'s, C>, Span<'s>, (Span<'s>, O), E>)
 where
     O: Debug,
     E: Debug,
@@ -781,15 +770,15 @@ where
     println!();
     println!(
         "when parsing '{}' in {} =>",
-        restrict(DebugWidth::Medium, testn.span),
-        humantime::format_duration(testn.duration)
+        restrict(DebugWidth::Medium, test.span),
+        humantime::format_duration(test.duration)
     );
 
-    let trace = &testn.x.trace;
+    let trace = &test.x.trace;
 
     println!("{:?}", TracerDebug { trace });
 
-    match &testn.result {
+    match &test.result {
         Ok((rest, token)) => {
             println!(
                 "rest {}:\"{}\"",
