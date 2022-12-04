@@ -115,7 +115,8 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
         }
 
         // when backtracking we always replace the current error code.
-        err.code = self.func();
+        // todo: this is somewhat useless.
+        // err.code = self.func();
 
         let exp = self.pop_expect();
         self.track_expect(Usage::Use, Cow::Borrowed(&exp.list));

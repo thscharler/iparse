@@ -22,8 +22,12 @@ pub fn restrict_n(max_len: usize, span: Span<'_>) -> String {
             Err(_) => "?error?",
         };
 
-    shortened
-        .escape_default()
-        .chain("...".iter_elements())
-        .collect()
+    if span.len() > max_len {
+        shortened
+            .escape_default()
+            .chain("...".iter_elements())
+            .collect()
+    } else {
+        shortened.escape_default().collect()
+    }
 }

@@ -135,7 +135,7 @@ impl<'s, C: Code> ParserError<'s, C> {
     }
 
     /// Get Expect grouped by offset into the string, starting with max first.
-    pub fn expect_grouped(&self) -> Vec<(usize, Vec<&Expect<'s, C>>)> {
+    pub fn expect_grouped_by_offset(&self) -> Vec<(usize, Vec<&Expect<'s, C>>)> {
         let mut sorted = self.expect().clone();
         sorted.reverse();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
@@ -162,6 +162,34 @@ impl<'s, C: Code> ParserError<'s, C> {
         grp
     }
 
+    /// Get Expect grouped by offset into the string, starting with max first.
+    pub fn expect_grouped_by_line(&self) -> Vec<(u32, Vec<&Expect<'s, C>>)> {
+        let mut sorted = self.expect().clone();
+        sorted.reverse();
+        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
+
+        // per offset
+        let mut grp_line = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_line() != grp_line {
+                if !subgrp.is_empty() {
+                    grp.push((grp_line, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_line = exp.span.location_line();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_line, subgrp));
+        }
+
+        grp
+    }
+
     pub fn suggest(&self) -> Vec<&Suggest<'s, C>> {
         self.hints
             .iter()
@@ -173,7 +201,7 @@ impl<'s, C: Code> ParserError<'s, C> {
     }
 
     /// Get Suggest grouped by offset into the string, starting with max first.
-    pub fn suggest_grouped(&self) -> Vec<(usize, Vec<&Suggest<'s, C>>)> {
+    pub fn suggest_grouped_by_offset(&self) -> Vec<(usize, Vec<&Suggest<'s, C>>)> {
         let mut sorted = self.suggest().clone();
         sorted.reverse();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
@@ -195,6 +223,34 @@ impl<'s, C: Code> ParserError<'s, C> {
         }
         if !subgrp.is_empty() {
             grp.push((grp_offset, subgrp));
+        }
+
+        grp
+    }
+
+    /// Get Suggest grouped by offset into the string, starting with max first.
+    pub fn suggest_grouped_by_line(&self) -> Vec<(u32, Vec<&Suggest<'s, C>>)> {
+        let mut sorted = self.suggest().clone();
+        sorted.reverse();
+        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
+
+        // per offset
+        let mut grp_line = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_line() != grp_line {
+                if !subgrp.is_empty() {
+                    grp.push((grp_line, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_line = exp.span.location_line();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_line, subgrp));
         }
 
         grp

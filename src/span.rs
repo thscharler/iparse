@@ -19,7 +19,14 @@ pub unsafe fn span_union_opt<'a>(span0: Option<Span<'a>>, span1: Span<'a>) -> Sp
     }
 }
 
-///
+pub fn get_lines_around(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
+    let mut lines = get_lines_before(span0, n);
+    lines.pop();
+    lines.append(&mut get_lines_after(span0, n));
+
+    lines
+}
+
 pub fn get_lines_after(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
     let line0 = span0.location_line();
     let offset0 = span0.location_offset();
@@ -28,7 +35,7 @@ pub fn get_lines_after(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
     let mut v = Vec::new();
 
     // find beginning of current line
-    let loop_slice = &slice[..offset0 + 1];
+    let loop_slice = &slice[..offset0];
     let offset_b = match memchr::memrchr(b'\n', loop_slice) {
         None => 0,
         Some(offset) => offset + 1,
@@ -100,7 +107,7 @@ pub fn get_lines_before(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
     let mut v = Vec::new();
 
     // find beginning of current line
-    let loop_slice = &slice[..offset0 + 1];
+    let loop_slice = &slice[..offset0];
     let offset_b = match memchr::memrchr(b'\n', loop_slice) {
         None => 0,
         Some(offset) => offset + 1,
