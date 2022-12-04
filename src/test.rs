@@ -1,5 +1,6 @@
 use crate::debug::restrict;
 use crate::error::{DebugWidth, ParserError};
+use crate::notracer::NoTracer;
 use crate::rtracer::RTracer;
 use crate::tracer::CTracer;
 use crate::{Code, FilterFn, ParserResult, Span, Tracer};
@@ -7,6 +8,7 @@ use ::nom::IResult;
 use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::fmt::Debug;
+use std::marker::PhantomData;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -32,6 +34,10 @@ pub type ParserFn<'s, O, C, const TRACK: bool> =
 /// Signature of a parser function for Test.
 pub type RParserFn<'s, O, C> =
     fn(&'_ RTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
+
+/// Signature of a parser function for Test.
+pub type NoParserFn<'s, O, C> =
+    fn(&'_ NoTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 /// Test runner.
 pub struct Test<P, I, O, E>
@@ -207,8 +213,11 @@ pub fn test_parse_false<'a, 's, V: Debug, C: Code>(
     let trace: CTracer<C, false> = CTracer::new();
 
     let now = Instant::now();
-    let result = fn_test(&trace, span);
+    for _ in 0..100 {
+        let _ = fn_test(&trace, span);
+    }
     let elapsed = now.elapsed();
+    let result = fn_test(&trace, span);
 
     Test {
         x: TestTracer {
@@ -235,11 +244,44 @@ pub fn test_rparse<'a, 's, V: Debug, C: Code>(
     let trace = RTracer::new();
 
     let now = Instant::now();
-    let result = fn_test(&trace, span);
+    for _ in 0..100 {
+        let _ = fn_test(&trace, span);
+    }
     let elapsed = now.elapsed();
+    let result = fn_test(&trace, span);
 
     Test {
         x: TestRTracer { trace },
+        span,
+        result,
+        duration: elapsed,
+        fail: Cell::new(false),
+    }
+}
+
+/// Runs the parser and records the results.
+/// Use ok(), err(), ... to check specifics.
+///
+/// Finish the test with q().
+#[must_use]
+pub fn test_noparse<'a, 's, V: Debug, C: Code>(
+    span: &'s str,
+    fn_test: NoParserFn<'s, V, C>,
+) -> Test<TestNoTracer<'s, C>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
+    let span = Span::new(span);
+    let trace = NoTracer::new();
+
+    let now = Instant::now();
+    for _ in 0..100 {
+        let _ = fn_test(&trace, span);
+    }
+    let elapsed = now.elapsed();
+    let result = fn_test(&trace, span);
+
+    Test {
+        x: TestNoTracer {
+            _phantom: Default::default(),
+        },
         span,
         result,
         duration: elapsed,
@@ -526,6 +568,11 @@ pub struct TestRTracer<'s, C: Code> {
     pub trace: RTracer<'s, C>,
 }
 
+/// Extra data for the parser fn.
+pub struct TestNoTracer<'s, C: Code> {
+    pub _phantom: PhantomData<(&'s str, C)>,
+}
+
 // Reporting -------------------------------------------------------------
 
 /// Dumps the Result data if any test failed.
@@ -563,7 +610,6 @@ where
     E: Debug,
     O: Debug,
 {
-    println!();
     println!(
         "when parsing '{}' in {} =>",
         restrict(DebugWidth::Medium, testn.span),

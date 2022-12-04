@@ -2,6 +2,7 @@
 
 mod debug;
 pub mod error;
+pub mod notracer;
 pub mod rtracer;
 pub mod span;
 pub mod test;

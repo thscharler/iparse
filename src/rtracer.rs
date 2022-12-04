@@ -136,7 +136,7 @@ impl<'s, C: Code> RTracer<'s, C> {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: self.parent_vec(), //TODO?
+            parents: self.parent_vec(),
         })
     }
 
@@ -177,7 +177,7 @@ impl<'s, C: Code> RTracer<'s, C> {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: self.parent_vec(), //TODO:?
+            parents: self.parent_vec(),
         })
     }
 
