@@ -12,10 +12,10 @@ fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
     Ok(())
 }
 
-pub(crate) fn debug_tracer<'s, C: Code>(
+pub(crate) fn debug_tracer<'s, C: Code, const TRACK: bool>(
     o: &mut impl fmt::Write,
     w: DebugWidth,
-    trace: &CTracer<'s, C>,
+    trace: &CTracer<'s, C, TRACK>,
     filter: FilterFn<'_, C>,
 ) -> fmt::Result {
     let mut ind = 0;

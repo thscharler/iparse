@@ -26,8 +26,8 @@ pub type NomFn2<'s, C, O> = fn(Span<'s>) -> Result<(Span<'s>, O), nom::Err<Parse
 pub type TokenFn<'s, O, C> = fn(Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 /// Signature of a parser function for Test.
-pub type ParserFn<'s, O, C> =
-    fn(&'_ CTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
+pub type ParserFn<'s, O, C, const TRACK: bool> =
+    fn(&'_ CTracer<'s, C, TRACK>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 /// Signature of a parser function for Test.
 pub type RParserFn<'s, O, C> =
@@ -176,10 +176,35 @@ pub fn test_token<'s, V: Debug, C: Code>(
 #[must_use]
 pub fn test_parse<'a, 's, V: Debug, C: Code>(
     span: &'s str,
-    fn_test: ParserFn<'s, V, C>,
-) -> Test<TestTracer<'a, 's, C>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
+    fn_test: ParserFn<'s, V, C, true>,
+) -> Test<TestTracer<'a, 's, C, true>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
     let span = Span::new(span);
-    let trace = CTracer::new();
+    let trace: CTracer<C, true> = CTracer::new();
+
+    let now = Instant::now();
+    let result = fn_test(&trace, span);
+    let elapsed = now.elapsed();
+
+    Test {
+        x: TestTracer {
+            trace,
+            trace_filter: RefCell::new(&|_| true),
+        },
+        span,
+        result,
+        duration: elapsed,
+        fail: Cell::new(false),
+    }
+}
+
+#[must_use]
+pub fn test_parse_false<'a, 's, V: Debug, C: Code>(
+    span: &'s str,
+    fn_test: ParserFn<'s, V, C, false>,
+) -> Test<TestTracer<'a, 's, C, false>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
+    let span = Span::new(span);
+
+    let trace: CTracer<C, false> = CTracer::new();
 
     let now = Instant::now();
     let result = fn_test(&trace, span);
@@ -472,13 +497,14 @@ where
 // Parser ----------------------------------------------------------------
 
 /// Extra data for the parser fn.
-pub struct TestTracer<'a, 's, C: Code> {
-    pub trace: CTracer<'s, C>,
+pub struct TestTracer<'a, 's, C: Code, const TRACK: bool> {
+    pub trace: CTracer<'s, C, TRACK>,
     pub trace_filter: RefCell<FilterFn<'a, C>>,
 }
 
 // matches a ParserFn
-impl<'a, 's, O, C> Test<TestTracer<'a, 's, C>, Span<'s>, (Span<'s>, O), ParserError<'s, C>>
+impl<'a, 's, O, C, const TRACK: bool>
+    Test<TestTracer<'a, 's, C, TRACK>, Span<'s>, (Span<'s>, O), ParserError<'s, C>>
 where
     O: Debug,
     C: Code,
@@ -588,14 +614,15 @@ where
 /// Dumps the full parser trace if any test failed.
 pub struct CheckTrace;
 
-impl<'s, O, C, E> Report<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E> for CheckTrace
+impl<'s, O, C, E, const TRACK: bool>
+    Report<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E> for CheckTrace
 where
     E: Debug,
     O: Debug,
     C: Code,
 {
     #[track_caller]
-    fn report(testn: &Test<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E>) {
+    fn report(testn: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>) {
         if testn.fail.get() {
             trace(testn);
             panic!("test failed")
@@ -606,29 +633,31 @@ where
 /// Dumps the full parser trace.
 pub struct Trace;
 
-impl<'s, O, C, E> Report<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E> for Trace
+impl<'s, O, C, E, const TRACK: bool>
+    Report<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E> for Trace
 where
     E: Debug,
     O: Debug,
     C: Code,
 {
-    fn report(testn: &Test<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E>) {
+    fn report(testn: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>) {
         trace(testn);
     }
 }
 
-fn trace<'s, O, C, E>(testn: &Test<TestTracer<'_, 's, C>, Span<'s>, (Span<'s>, O), E>)
-where
+fn trace<'s, O, C, E, const TRACK: bool>(
+    testn: &Test<TestTracer<'_, 's, C, TRACK>, Span<'s>, (Span<'s>, O), E>,
+) where
     O: Debug,
     E: Debug,
     C: Code,
 {
-    struct TracerDebug<'a, 's, C: Code> {
-        trace: &'a CTracer<'s, C>,
+    struct TracerDebug<'a, 's, C: Code, const TRACK: bool> {
+        trace: &'a CTracer<'s, C, TRACK>,
         track_filter: FilterFn<'a, C>,
     }
 
-    impl<'a, 's, C: Code> Debug for TracerDebug<'a, 's, C> {
+    impl<'a, 's, C: Code, const TRACK: bool> Debug for TracerDebug<'a, 's, C, TRACK> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             self.trace.write(f, DebugWidth::Medium, self.track_filter)
         }

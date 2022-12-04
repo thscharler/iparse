@@ -1,4 +1,3 @@
-use crate::debug::restrict;
 use crate::debug::tracer::debug_tracer;
 use crate::error::{DebugWidth, Expect, ParserError, Suggest};
 use crate::{Code, FilterFn, ParserResult, Span, Tracer};
@@ -8,7 +7,7 @@ use std::fmt::{Debug, Display};
 use std::marker::PhantomData;
 
 /// Tracing and error collection.
-pub struct CTracer<'s, C: Code> {
+pub struct CTracer<'s, C: Code, const TRACK: bool = true> {
     /// Function call stack.
     pub(crate) func: RefCell<Vec<C>>,
 
@@ -18,7 +17,7 @@ pub struct CTracer<'s, C: Code> {
     pub(crate) expect: RefCell<Vec<ExpectTrack<'s, C>>>,
 }
 
-impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
+impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
     /// New one.
     fn new() -> Self {
         Self {
@@ -50,21 +49,21 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
 
     /// Adds a suggestion for the current stack frame.
     fn suggest(&self, suggest: C, span: Span<'s>) {
-        self.debug(format!(
-            "suggest {}:\"{}\" ...",
-            suggest,
-            restrict(DebugWidth::Medium, span)
-        ));
+        // self.debug(format!(
+        //     "suggest {}:\"{}\" ...",
+        //     suggest,
+        //     restrict(DebugWidth::Medium, span)
+        // ));
         self.add_suggest(suggest, span);
     }
 
     /// Keep track of this error.
     fn stash(&self, err: ParserError<'s, C>) {
-        self.debug(format!(
-            "expect {}:\"{}\" ...",
-            err.code,
-            restrict(DebugWidth::Medium, err.span)
-        ));
+        // self.debug(format!(
+        //     "expect {}:\"{}\" ...",
+        //     err.code,
+        //     restrict(DebugWidth::Medium, err.span)
+        // ));
         self.add_expect(err.code, err.span);
         self.append_expect(err.expect);
         self.append_suggest(err.suggest);
@@ -129,7 +128,7 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
 }
 
 // output
-impl<'s, C: Code> CTracer<'s, C> {
+impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     /// Write a debug output of the Tracer state.
     pub fn write(
         &self,
@@ -142,7 +141,7 @@ impl<'s, C: Code> CTracer<'s, C> {
 }
 
 // expect
-impl<'s, C: Code> CTracer<'s, C> {
+impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     fn push_expect(&self, func: C) {
         self.expect.borrow_mut().push(ExpectTrack {
             func,
@@ -183,7 +182,7 @@ impl<'s, C: Code> CTracer<'s, C> {
 }
 
 // suggest
-impl<'s, C: Code> CTracer<'s, C> {
+impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     fn push_suggest(&self, func: C) {
         self.suggest.borrow_mut().push(SuggestTrack {
             func,
@@ -224,7 +223,7 @@ impl<'s, C: Code> CTracer<'s, C> {
 }
 
 // call frame tracking
-impl<'s, C: Code> CTracer<'s, C> {
+impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     // enter function
     fn push_func(&self, func: C) {
         self.func.borrow_mut().push(func);
@@ -250,79 +249,95 @@ impl<'s, C: Code> CTracer<'s, C> {
 }
 
 // basic tracking
-impl<'s, C: Code> CTracer<'s, C> {
+impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     fn track_enter(&self, span: Span<'s>) {
-        self.track.borrow_mut().push(Track::Enter(EnterTrack {
-            func: self.func(),
-            span,
-            parents: self.parent_vec(),
-        }));
+        if TRACK {
+            self.track.borrow_mut().push(Track::Enter(EnterTrack {
+                func: self.func(),
+                span,
+                parents: self.parent_vec(),
+            }));
+        }
     }
 
     fn track_step(&self, step: &'static str, span: Span<'s>) {
-        self.track.borrow_mut().push(Track::Step(StepTrack {
-            func: self.func(),
-            step,
-            span,
-            parents: self.parent_vec(),
-        }));
+        if TRACK {
+            self.track.borrow_mut().push(Track::Step(StepTrack {
+                func: self.func(),
+                step,
+                span,
+                parents: self.parent_vec(),
+            }));
+        }
     }
 
     fn track_debug(&self, dbg: String) {
-        self.track.borrow_mut().push(Track::Debug(DebugTrack {
-            func: self.func(),
-            dbg,
-            parents: self.parent_vec(),
-            _phantom: Default::default(),
-        }));
+        if TRACK {
+            self.track.borrow_mut().push(Track::Debug(DebugTrack {
+                func: self.func(),
+                dbg,
+                parents: self.parent_vec(),
+                _phantom: Default::default(),
+            }));
+        }
     }
 
     fn track_suggest(&self, usage: Usage, suggest: Vec<Suggest<'s, C>>) {
-        if !suggest.is_empty() {
-            self.track.borrow_mut().push(Track::Suggest(SuggestTrack {
-                func: self.func(),
-                usage,
-                list: suggest,
-                parents: self.parent_vec(),
-            }));
+        if TRACK {
+            if !suggest.is_empty() {
+                self.track.borrow_mut().push(Track::Suggest(SuggestTrack {
+                    func: self.func(),
+                    usage,
+                    list: suggest,
+                    parents: self.parent_vec(),
+                }));
+            }
         }
     }
 
     fn track_expect(&self, usage: Usage, expect: Vec<Expect<'s, C>>) {
-        if !expect.is_empty() {
-            self.track.borrow_mut().push(Track::Expect(ExpectTrack {
+        if TRACK {
+            if !expect.is_empty() {
+                self.track.borrow_mut().push(Track::Expect(ExpectTrack {
+                    func: self.func(),
+                    usage,
+                    list: expect,
+                    parents: self.parent_vec(),
+                }));
+            }
+        }
+    }
+
+    fn track_ok(&self, rest: Span<'s>, span: Span<'s>) {
+        if TRACK {
+            self.track.borrow_mut().push(Track::Ok(OkTrack {
                 func: self.func(),
-                usage,
-                list: expect,
+                span,
+                rest,
                 parents: self.parent_vec(),
             }));
         }
     }
 
-    fn track_ok(&self, rest: Span<'s>, span: Span<'s>) {
-        self.track.borrow_mut().push(Track::Ok(OkTrack {
-            func: self.func(),
-            span,
-            rest,
-            parents: self.parent_vec(),
-        }));
-    }
-
     fn track_error(&self, err: &ParserError<'s, C>) {
-        self.track.borrow_mut().push(Track::Err(ErrTrack {
-            func: self.func(),
-            span: err.span,
-            err: err.to_string(),
-            parents: self.parent_vec(),
-        }));
+        if TRACK {
+            self.track.borrow_mut().push(Track::Err(ErrTrack {
+                func: self.func(),
+                span: err.span,
+                err: err.to_string(),
+                parents: self.parent_vec(),
+            }));
+        }
     }
 
     fn track_exit(&self) {
-        self.track.borrow_mut().push(Track::Exit(ExitTrack {
-            func: self.func(),
-            parents: self.parent_vec(),
-            _phantom: Default::default(),
-        }));
+        if TRACK {
+            self.track.borrow_mut().push(Track::Exit(ExitTrack {
+                func: self.func(),
+                parents: self.parent_vec(),
+                _phantom: Default::default(),
+            }));
+        }
     }
 }
 
