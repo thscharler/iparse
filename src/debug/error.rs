@@ -1,4 +1,5 @@
-use crate::error::{Expect, ParserError, Suggest};
+use crate::debug::restrict;
+use crate::error::{DebugWidth, Expect, ParserError, Suggest};
 use crate::Code;
 use std::fmt;
 use std::fmt::Debug;
@@ -16,14 +17,16 @@ impl<'s, C: Code> Debug for ParserError<'s, C> {
 
 impl<'s, C: Code> Debug for Suggest<'s, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:\"{}\"", self.code, self.span.escape_default())?;
+        let w = f.width().into();
+        write!(f, "{}:\"{}\"", self.code, restrict(w, self.span))?;
         Ok(())
     }
 }
 
 impl<'s, C: Code> Debug for Expect<'s, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:\"{}\"", self.code, self.span.escape_default())?;
+        let w = f.width().into();
+        write!(f, "{}:\"{}\"", self.code, restrict(w, self.span))?;
         Ok(())
     }
 }
@@ -36,12 +39,17 @@ fn debug_parse_of_error_short<'s, C: Code>(
         f,
         "ParserError {} \"{}\"",
         err.code,
-        err.span.escape_default()
+        restrict(DebugWidth::Short, err.span)
     )?;
     if !err.nom.is_empty() {
         write!(f, " nom=")?;
         for n in &err.nom {
-            write!(f, " {:?}:\"{}\"", n.kind, n.span.escape_default())?;
+            write!(
+                f,
+                " {:?}:\"{}\"",
+                n.kind,
+                restrict(DebugWidth::Short, n.span)
+            )?;
         }
     }
     if !err.expect.is_empty() {
@@ -64,13 +72,18 @@ fn debug_parse_of_error_medium<'s, C: Code>(
         f,
         "ParserError {} \"{}\"",
         err.code,
-        err.span.escape_default()
+        restrict(DebugWidth::Medium, err.span)
     )?;
     if !err.nom.is_empty() {
         writeln!(f, "nom=")?;
         for n in &err.nom {
             indent(f, 1)?;
-            writeln!(f, "{:?}:\"{}\"", n.kind, n.span.escape_default())?;
+            writeln!(
+                f,
+                "{:?}:\"{}\"",
+                n.kind,
+                restrict(DebugWidth::Medium, n.span)
+            )?;
         }
     }
     if !err.expect.is_empty() {
@@ -99,7 +112,12 @@ fn debug_parse_of_error_medium<'s, C: Code>(
 
         for (g_off, subgrp) in grp {
             let first = subgrp.first().unwrap();
-            writeln!(f, "expect {}:\"{}\" ", g_off, first.span.escape_default())?;
+            writeln!(
+                f,
+                "expect {}:\"{}\" ",
+                g_off,
+                restrict(DebugWidth::Medium, first.span)
+            )?;
             debug_expect2_medium(f, &subgrp, 1)?;
         }
     }
@@ -129,7 +147,12 @@ fn debug_parse_of_error_medium<'s, C: Code>(
 
         for (g_off, subgrp) in grp {
             let first = subgrp.first().unwrap();
-            writeln!(f, "suggest {}:\"{}\"", g_off, first.span.escape_default())?;
+            writeln!(
+                f,
+                "suggest {}:\"{}\"",
+                g_off,
+                restrict(DebugWidth::Medium, first.span)
+            )?;
             debug_suggest2_medium(f, &subgrp, 1)?;
         }
     }
@@ -145,13 +168,13 @@ fn debug_parse_of_error_long<'s, C: Code>(
         f,
         "ParserError {} \"{}\"",
         err.code,
-        err.span.escape_default()
+        restrict(DebugWidth::Long, err.span)
     )?;
     if !err.nom.is_empty() {
         writeln!(f, "nom=")?;
         for n in &err.nom {
             indent(f, 1)?;
-            writeln!(f, "{:?}:\"{}\"", n.kind, n.span.escape_default())?;
+            writeln!(f, "{:?}:\"{}\"", n.kind, restrict(DebugWidth::Long, n.span))?;
         }
     }
     if !err.expect.is_empty() {
@@ -188,7 +211,7 @@ fn debug_expect2_long<C: Code>(
             "{}:{}:\"{}\"",
             exp.code,
             exp.span.location_offset(),
-            exp.span.escape_default()
+            restrict(DebugWidth::Long, exp.span)
         )?;
         if !exp.parents.is_empty() {
             write!(f, " <")?;
@@ -259,7 +282,12 @@ fn debug_expect2_short<C: Code>(
     _ind: usize,
 ) -> fmt::Result {
     for exp in exp_vec {
-        write!(f, "{}:\"{}\"", exp.code, exp.span.escape_default())?;
+        write!(
+            f,
+            "{}:\"{}\"",
+            exp.code,
+            restrict(DebugWidth::Short, exp.span)
+        )?;
         if !exp.parents.is_empty() {
             write!(f, " <")?;
             for (i, p) in exp.parents.iter().enumerate() {
@@ -289,7 +317,7 @@ fn debug_suggest2_long<C: Code>(
             "{}:{}:\"{}\"",
             sug.code,
             sug.span.location_offset(),
-            sug.span.escape_default()
+            restrict(DebugWidth::Long, sug.span)
         )?;
         if !sug.parents.is_empty() {
             write!(f, " <")?;
@@ -360,7 +388,12 @@ fn debug_suggest2_short<C: Code>(
     _ind: usize,
 ) -> fmt::Result {
     for sug in sug_vec {
-        write!(f, "{}:\"{}\"", sug.code, sug.span.escape_default())?;
+        write!(
+            f,
+            "{}:\"{}\"",
+            sug.code,
+            restrict(DebugWidth::Short, sug.span)
+        )?;
         if !sug.parents.is_empty() {
             write!(f, " <")?;
             for (i, p) in sug.parents.iter().enumerate() {

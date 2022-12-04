@@ -1,3 +1,4 @@
+use crate::debug::restrict;
 use crate::{Code, Span};
 use nom::error::ErrorKind;
 use std::error::Error;
@@ -111,14 +112,19 @@ impl<'s, C: Code> Display for ParserError<'s, C> {
             if i > 0 {
                 write!(f, " ")?;
             }
-            write!(f, "{}:\"{}\"", exp.code, exp.span.escape_default())?;
+            write!(
+                f,
+                "{}:\"{}\"",
+                exp.code,
+                restrict(DebugWidth::Short, exp.span)
+            )?;
         }
         // no suggest
         write!(
             f,
             " for span {} \"{}\"",
             self.span.location_offset(),
-            self.span.escape_default()
+            restrict(DebugWidth::Short, self.span)
         )?;
         Ok(())
     }

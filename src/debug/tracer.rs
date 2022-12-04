@@ -1,3 +1,4 @@
+use crate::debug::restrict;
 use crate::error::DebugWidth;
 use crate::tracer::{
     CTracer, DebugTrack, EnterTrack, ErrTrack, ExitTrack, ExpectTrack, OkTrack, StepTrack,
@@ -101,13 +102,13 @@ fn debug_enter<C: Code>(
 ) -> fmt::Result {
     match w {
         DebugWidth::Short | DebugWidth::Medium => {
-            write!(f, "{}: parse \"{}\"", v.func, v.span.escape_default())
+            write!(f, "{}: parse \"{}\"", v.func, restrict(w, v.span))
         }
         DebugWidth::Long => write!(
             f,
             "{}: parse \"{}\" <<{:?}",
             v.func,
-            v.span.escape_default(),
+            restrict(w, v.span),
             v.parents
         ),
     }
@@ -120,7 +121,7 @@ fn debug_step<C: Code>(
 ) -> fmt::Result {
     match w {
         DebugWidth::Short | DebugWidth::Medium => {
-            write!(f, "{}: {} \"{}\"", v.func, v.step, v.span.escape_default())
+            write!(f, "{}: {} \"{}\"", v.func, v.step, restrict(w, v.span))
         }
         DebugWidth::Long => {
             write!(
@@ -128,7 +129,7 @@ fn debug_step<C: Code>(
                 "{}: {} \"{}\" <<{:?}",
                 v.func,
                 v.step,
-                v.span.escape_default(),
+                restrict(w, v.span),
                 v.parents
             )
         }
@@ -169,6 +170,7 @@ fn debug_suggest<C: Code>(
         DebugWidth::Long => write!(f, "{}: {} suggest {:?}", v.func, v.usage, v.list),
     }
 }
+
 fn debug_ok<C: Code>(f: &mut impl fmt::Write, w: DebugWidth, v: &OkTrack<'_, C>) -> fmt::Result {
     match w {
         DebugWidth::Short | DebugWidth::Medium | DebugWidth::Long => {
@@ -177,8 +179,8 @@ fn debug_ok<C: Code>(f: &mut impl fmt::Write, w: DebugWidth, v: &OkTrack<'_, C>)
                     f,
                     "{}: -> [ {}, '{}' ]",
                     v.func,
-                    v.span.escape_default(),
-                    v.rest.escape_default()
+                    restrict(w, v.span),
+                    restrict(w, v.rest)
                 )?;
             } else {
                 write!(f, "{}: -> no match", v.func)?;

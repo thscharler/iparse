@@ -1,3 +1,4 @@
+use crate::debug::restrict;
 use crate::debug::tracer::debug_tracer;
 use crate::error::{DebugWidth, Expect, ParserError, Suggest};
 use crate::{Code, FilterFn, ParserResult, Span, Tracer, TrackParseResult};
@@ -52,7 +53,7 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
         self.debug(format!(
             "suggest {}:\"{}\" ...",
             suggest,
-            span.escape_default()
+            restrict(DebugWidth::Medium, span)
         ));
         self.add_suggest(suggest, span);
     }
@@ -62,7 +63,7 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
         self.debug(format!(
             "expect {}:\"{}\" ...",
             err.code,
-            err.span.escape_default()
+            restrict(DebugWidth::Medium, err.span)
         ));
         self.add_expect(err.code, err.span);
         self.append_expect(err.expect);

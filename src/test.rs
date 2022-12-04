@@ -1,3 +1,4 @@
+use crate::debug::restrict;
 use crate::error::{DebugWidth, ParserError};
 use crate::tracer::CTracer;
 use crate::{Code, FilterFn, ParserResult, Span, Tracer};
@@ -16,6 +17,9 @@ pub type CompareFn<O, V> = for<'a> fn(&'a O, V) -> bool;
 
 /// Signature of a classic nom function for Test.
 pub type NomFn<'s, O> = fn(Span<'s>) -> IResult<Span<'s>, O>;
+
+/// Signature of a classic nom function for Test.
+pub type NomFn2<'s, C, O> = fn(Span<'s>) -> Result<(Span<'s>, O), nom::Err<ParserError<'s, C>>>;
 
 /// Tokenizer function.
 pub type TokenFn<'s, O, C> = fn(Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
@@ -100,6 +104,27 @@ pub fn test_nom<'s, T: Debug>(
     span: &'s str,
     fn_test: NomFn<'s, T>,
 ) -> Test<(), Span<'s>, (Span<'s>, T), nom::Err<nom::error::Error<Span<'s>>>> {
+    let span: Span<'s> = span.into();
+
+    let now = Instant::now();
+    let result = fn_test(span.clone());
+    let elapsed = now.elapsed();
+
+    Test {
+        x: (),
+        span,
+        result,
+        duration: elapsed,
+        fail: Cell::new(false),
+    }
+}
+
+/// Run a test for a nom parser.
+#[must_use]
+pub fn test_nom2<'s, C: Code, T: Debug>(
+    span: &'s str,
+    fn_test: NomFn2<'s, C, T>,
+) -> Test<(), Span<'s>, (Span<'s>, T), nom::Err<ParserError<'s, C>>> {
     let span: Span<'s> = span.into();
 
     let now = Instant::now();
@@ -476,7 +501,7 @@ where
     println!();
     println!(
         "when parsing '{}' in {}ns =>",
-        testn.span.escape_default(),
+        restrict(DebugWidth::Medium, testn.span),
         testn.duration.as_nanos()
     );
     match &testn.result {
@@ -543,7 +568,7 @@ where
     println!();
     println!(
         "when parsing '{}' in {}ns =>",
-        testn.span.escape_default(),
+        restrict(DebugWidth::Medium, testn.span),
         testn.duration.as_nanos()
     );
 
@@ -561,7 +586,11 @@ where
 
     match &testn.result {
         Ok((rest, token)) => {
-            println!("rest {}:\"{}\"", rest.location_offset(), rest);
+            println!(
+                "rest {}:\"{}\"",
+                rest.location_offset(),
+                restrict(DebugWidth::Medium, *rest)
+            );
             println!("{:0?}", token);
         }
         Err(e) => {

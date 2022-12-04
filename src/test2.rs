@@ -1,3 +1,5 @@
+use crate::debug::restrict;
+use crate::error::DebugWidth;
 use crate::{Code, ParserResult, Span};
 use nom::IResult;
 
@@ -328,7 +330,7 @@ impl<'a, C: Code> TestFail<C> for ParserResult<'a, C, (Span<'a>, Span<'a>)> {
                     println!("Failed with the wrong ErrorKind:");
                     println!(
                         "    '{}' => result={} <> kind={:?}",
-                        e.span.escape_default(),
+                        restrict(DebugWidth::Medium, e.span),
                         e,
                         kind
                     );
@@ -377,7 +379,7 @@ impl<'a, C: Code> TestFail<C> for ParserResult<'a, C, (Span<'a>, (Option<Span<'a
                     println!("Failed with the wrong ErrorKind:");
                     println!(
                         "    '{}' => result={} <> kind={:?}",
-                        e.span.escape_default(),
+                        restrict(DebugWidth::Medium, e.span),
                         e,
                         kind
                     );
