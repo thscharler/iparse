@@ -1,29 +1,23 @@
 use crate::debug::restrict;
-use crate::debug::tracer::debug_tracer;
+use crate::debug::rtracer::debug_rtracer;
 use crate::error::{DebugWidth, Expect, ParserError, Suggest};
-use crate::{Code, FilterFn, ParserResult, Span, Tracer};
+use crate::{Code, ParserResult, Span, Tracer};
 use std::cell::RefCell;
 use std::fmt;
 use std::fmt::{Debug, Display};
-use std::marker::PhantomData;
 
 /// Tracing and error collection.
-pub struct CTracer<'s, C: Code> {
-    /// Function call stack.
+pub struct RTracer<'s, C: Code> {
     pub(crate) func: RefCell<Vec<C>>,
-
-    /// Collected tracks.
-    pub(crate) track: RefCell<Vec<Track<'s, C>>>,
     pub(crate) suggest: RefCell<Vec<SuggestTrack<'s, C>>>,
     pub(crate) expect: RefCell<Vec<ExpectTrack<'s, C>>>,
 }
 
-impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
+impl<'s, C: Code> Tracer<'s, C> for RTracer<'s, C> {
     /// New one.
     fn new() -> Self {
         Self {
             func: RefCell::new(Vec::new()),
-            track: RefCell::new(Vec::new()),
             suggest: RefCell::new(Vec::new()),
             expect: RefCell::new(Vec::new()),
         }
@@ -129,20 +123,15 @@ impl<'s, C: Code> Tracer<'s, C> for CTracer<'s, C> {
 }
 
 // output
-impl<'s, C: Code> CTracer<'s, C> {
+impl<'s, C: Code> RTracer<'s, C> {
     /// Write a debug output of the Tracer state.
-    pub fn write(
-        &self,
-        out: &mut impl fmt::Write,
-        w: DebugWidth,
-        filter: FilterFn<'_, C>,
-    ) -> fmt::Result {
-        debug_tracer(out, w, self, filter)
+    pub fn write(&self, out: &mut impl fmt::Write, w: DebugWidth) -> fmt::Result {
+        debug_rtracer(out, w, self)
     }
 }
 
 // expect
-impl<'s, C: Code> CTracer<'s, C> {
+impl<'s, C: Code> RTracer<'s, C> {
     fn push_expect(&self, func: C) {
         self.expect.borrow_mut().push(ExpectTrack {
             func,
@@ -183,7 +172,7 @@ impl<'s, C: Code> CTracer<'s, C> {
 }
 
 // suggest
-impl<'s, C: Code> CTracer<'s, C> {
+impl<'s, C: Code> RTracer<'s, C> {
     fn push_suggest(&self, func: C) {
         self.suggest.borrow_mut().push(SuggestTrack {
             func,
@@ -224,7 +213,7 @@ impl<'s, C: Code> CTracer<'s, C> {
 }
 
 // call frame tracking
-impl<'s, C: Code> CTracer<'s, C> {
+impl<'s, C: Code> RTracer<'s, C> {
     // enter function
     fn push_func(&self, func: C) {
         self.func.borrow_mut().push(func);
@@ -250,87 +239,29 @@ impl<'s, C: Code> CTracer<'s, C> {
 }
 
 // basic tracking
-impl<'s, C: Code> CTracer<'s, C> {
-    fn track_enter(&self, span: Span<'s>) {
-        self.track.borrow_mut().push(Track::Enter(EnterTrack {
-            func: self.func(),
-            span,
-            parents: self.parent_vec(),
-        }));
-    }
+impl<'s, C: Code> RTracer<'s, C> {
+    fn track_enter(&self, _span: Span<'s>) {}
 
-    fn track_step(&self, step: &'static str, span: Span<'s>) {
-        self.track.borrow_mut().push(Track::Step(StepTrack {
-            func: self.func(),
-            step,
-            span,
-            parents: self.parent_vec(),
-        }));
-    }
+    fn track_step(&self, _step: &'static str, _span: Span<'s>) {}
 
-    fn track_debug(&self, dbg: String) {
-        self.track.borrow_mut().push(Track::Debug(DebugTrack {
-            func: self.func(),
-            dbg,
-            parents: self.parent_vec(),
-            _phantom: Default::default(),
-        }));
-    }
+    fn track_debug(&self, _dbg: String) {}
 
-    fn track_suggest(&self, usage: Usage, suggest: Vec<Suggest<'s, C>>) {
-        if !suggest.is_empty() {
-            self.track.borrow_mut().push(Track::Suggest(SuggestTrack {
-                func: self.func(),
-                usage,
-                list: suggest,
-                parents: self.parent_vec(),
-            }));
-        }
-    }
+    fn track_suggest(&self, _usage: Usage, _suggest: Vec<Suggest<'s, C>>) {}
 
-    fn track_expect(&self, usage: Usage, expect: Vec<Expect<'s, C>>) {
-        if !expect.is_empty() {
-            self.track.borrow_mut().push(Track::Expect(ExpectTrack {
-                func: self.func(),
-                usage,
-                list: expect,
-                parents: self.parent_vec(),
-            }));
-        }
-    }
+    fn track_expect(&self, _usage: Usage, _expect: Vec<Expect<'s, C>>) {}
 
-    fn track_ok(&self, rest: Span<'s>, span: Span<'s>) {
-        self.track.borrow_mut().push(Track::Ok(OkTrack {
-            func: self.func(),
-            span,
-            rest,
-            parents: self.parent_vec(),
-        }));
-    }
+    fn track_ok(&self, _rest: Span<'s>, _span: Span<'s>) {}
 
-    fn track_error(&self, err: &ParserError<'s, C>) {
-        self.track.borrow_mut().push(Track::Err(ErrTrack {
-            func: self.func(),
-            span: err.span,
-            err: err.to_string(),
-            parents: self.parent_vec(),
-        }));
-    }
+    fn track_error(&self, _err: &ParserError<'s, C>) {}
 
-    fn track_exit(&self) {
-        self.track.borrow_mut().push(Track::Exit(ExitTrack {
-            func: self.func(),
-            parents: self.parent_vec(),
-            _phantom: Default::default(),
-        }));
-    }
+    fn track_exit(&self) {}
 }
 
-impl<'s, C: Code> Default for CTracer<'s, C> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// impl<'s, C: Code> Default for RTracer<'s, C> {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
 
 // Track -----------------------------------------------------------------
 
@@ -379,113 +310,27 @@ pub struct SuggestTrack<'s, C: Code> {
     pub parents: Vec<C>,
 }
 
-/// Track for entering a parser function.
-pub struct EnterTrack<'s, C> {
-    /// Function
-    pub func: C,
-    /// Span
-    pub span: Span<'s>,
-    /// Parser call stack.
-    pub parents: Vec<C>,
-}
-
-/// Track for step information.
-pub struct StepTrack<'s, C> {
-    /// Function
-    pub func: C,
-    /// Step info.
-    pub step: &'static str,
-    /// Span
-    pub span: Span<'s>,
-    /// Parser call stack.
-    pub parents: Vec<C>,
-}
-
-/// Track for debug information.
-pub struct DebugTrack<'s, C> {
-    /// Function.
-    pub func: C,
-    /// Debug info. TODO: Is the string necessary?
-    pub dbg: String,
-    /// Parser call stack.
-    pub parents: Vec<C>,
-    /// For the lifetime ...
-    pub _phantom: PhantomData<Span<'s>>,
-}
-
-/// Track for ok results.
-pub struct OkTrack<'s, C> {
-    /// Function.
-    pub func: C,
-    /// Span.
-    pub span: Span<'s>,
-    /// Remaining span.
-    pub rest: Span<'s>,
-    /// Parser call stack.
-    pub parents: Vec<C>,
-}
-
-/// Track for err results.
-pub struct ErrTrack<'s, C> {
-    /// Function.
-    pub func: C,
-    /// Span.
-    pub span: Span<'s>,
-    /// Error message.
-    pub err: String, // TODO: check
-    /// Parser call stack.
-    pub parents: Vec<C>,
-}
-
-/// Track for exiting a parser function.
-pub struct ExitTrack<'s, C> {
-    /// Function
-    pub func: C,
-    /// Parser call stack.
-    pub parents: Vec<C>,
-    /// For the lifetime ...
-    pub _phantom: PhantomData<Span<'s>>,
-}
-
 /// One track of the parsing trace.
 #[allow(missing_docs)]
 pub enum Track<'s, C: Code> {
-    Enter(EnterTrack<'s, C>),
-    Step(StepTrack<'s, C>),
-    Debug(DebugTrack<'s, C>),
     Expect(ExpectTrack<'s, C>),
     Suggest(SuggestTrack<'s, C>),
-    Ok(OkTrack<'s, C>),
-    Err(ErrTrack<'s, C>),
-    Exit(ExitTrack<'s, C>),
 }
 
 impl<'s, C: Code> Track<'s, C> {
     /// Returns the func value for each branch.
     pub fn func(&self) -> C {
         match self {
-            Track::Enter(v) => v.func,
-            Track::Step(v) => v.func,
-            Track::Debug(v) => v.func,
             Track::Expect(v) => v.func,
             Track::Suggest(v) => v.func,
-            Track::Ok(v) => v.func,
-            Track::Err(v) => v.func,
-            Track::Exit(v) => v.func,
         }
     }
 
     /// Returns the parser call stack for each branch.
     pub fn parents(&self) -> &Vec<C> {
         match self {
-            Track::Enter(v) => &v.parents,
-            Track::Step(v) => &v.parents,
-            Track::Debug(v) => &v.parents,
             Track::Expect(v) => &v.parents,
             Track::Suggest(v) => &v.parents,
-            Track::Ok(v) => &v.parents,
-            Track::Err(v) => &v.parents,
-            Track::Exit(v) => &v.parents,
         }
     }
 }

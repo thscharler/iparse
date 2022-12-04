@@ -2,6 +2,7 @@
 
 mod debug;
 pub mod error;
+pub mod rtracer;
 pub mod span;
 pub mod test;
 pub mod test2;
@@ -12,7 +13,6 @@ pub use crate::debug::restrict_n;
 use crate::error::ParserError;
 use crate::tracer::Track;
 use nom_locate::LocatedSpan;
-use std::fmt;
 use std::fmt::{Debug, Display};
 
 /// Standard input type.
@@ -197,15 +197,9 @@ pub trait Tracer<'s, C: Code> {
 
     /// Write a track for an error.
     fn err<T>(&'_ self, err: ParserError<'s, C>) -> ParserResult<'s, C, T>;
-
-    /// Write a debug output of the Tracer state.
-    fn write(
-        &self,
-        o: &mut impl fmt::Write,
-        w: error::DebugWidth,
-        filter: FilterFn<'_, C>,
-    ) -> fmt::Result;
 }
+
+// TrackParseResult ------------------------------------------------------
 
 /// Can be used to track the results of calls to another Parser or nom-parser.
 ///
@@ -219,4 +213,68 @@ pub trait TrackParseResult<'s, 't, C: Code> {
     /// Translates the error code and adds the standard expect value.
     /// Then tracks the error and marks the current function as finished.
     fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result;
+}
+
+impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, C> for ParserResult<'s, C, O> {
+    type Result = Self;
+
+    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
+        match self {
+            Ok(_) => self,
+            Err(e) => trace.err(e),
+        }
+    }
+
+    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result {
+        match self {
+            Ok(_) => self,
+            Err(e) => trace.err(e.into_code(code)),
+        }
+    }
+}
+
+impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
+    for Result<(Span<'s>, Span<'s>), nom::Err<ParserError<'s, C>>>
+{
+    type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;
+
+    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => trace.err(e.into()),
+        }
+    }
+
+    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let pe: ParserError<'s, C> = e.into();
+                trace.err(pe.into_code(code))
+            }
+        }
+    }
+}
+
+impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
+    for Result<(Span<'s>, Span<'s>), nom::Err<nom::error::Error<Span<'s>>>>
+{
+    type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;
+
+    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => trace.err(e.into()),
+        }
+    }
+
+    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let pe: ParserError<'s, C> = e.into();
+                trace.err(pe.into_code(code))
+            }
+        }
+    }
 }

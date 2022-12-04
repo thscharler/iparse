@@ -1,5 +1,6 @@
 use crate::debug::restrict;
 use crate::error::{DebugWidth, ParserError};
+use crate::rtracer::RTracer;
 use crate::tracer::CTracer;
 use crate::{Code, FilterFn, ParserResult, Span, Tracer};
 use ::nom::IResult;
@@ -27,6 +28,10 @@ pub type TokenFn<'s, O, C> = fn(Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 /// Signature of a parser function for Test.
 pub type ParserFn<'s, O, C> =
     fn(&'_ CTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
+
+/// Signature of a parser function for Test.
+pub type RParserFn<'s, O, C> =
+    fn(&'_ RTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 /// Test runner.
 pub struct Test<P, I, O, E>
@@ -185,6 +190,31 @@ pub fn test_parse<'a, 's, V: Debug, C: Code>(
             trace,
             trace_filter: RefCell::new(&|_| true),
         },
+        span,
+        result,
+        duration: elapsed,
+        fail: Cell::new(false),
+    }
+}
+
+/// Runs the parser and records the results.
+/// Use ok(), err(), ... to check specifics.
+///
+/// Finish the test with q().
+#[must_use]
+pub fn test_rparse<'a, 's, V: Debug, C: Code>(
+    span: &'s str,
+    fn_test: RParserFn<'s, V, C>,
+) -> Test<TestRTracer<'s, C>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
+    let span = Span::new(span);
+    let trace = RTracer::new();
+
+    let now = Instant::now();
+    let result = fn_test(&trace, span);
+    let elapsed = now.elapsed();
+
+    Test {
+        x: TestRTracer { trace },
         span,
         result,
         duration: elapsed,
@@ -461,6 +491,11 @@ where
     }
 }
 
+/// Extra data for the parser fn.
+pub struct TestRTracer<'s, C: Code> {
+    pub trace: RTracer<'s, C>,
+}
+
 // Reporting -------------------------------------------------------------
 
 /// Dumps the Result data if any test failed.
@@ -583,6 +618,63 @@ where
             track_filter
         }
     );
+
+    match &testn.result {
+        Ok((rest, token)) => {
+            println!(
+                "rest {}:\"{}\"",
+                rest.location_offset(),
+                restrict(DebugWidth::Medium, *rest)
+            );
+            println!("{:0?}", token);
+        }
+        Err(e) => {
+            println!("error");
+            println!("{:1?}", e);
+        }
+    }
+}
+
+/// Dumps the full parser trace.
+pub struct RTrace;
+
+impl<'s, O, C, E> Report<TestRTracer<'s, C>, Span<'s>, (Span<'s>, O), E> for RTrace
+where
+    E: Debug,
+    O: Debug,
+    C: Code,
+{
+    fn report(testn: &Test<TestRTracer<'s, C>, Span<'s>, (Span<'s>, O), E>) {
+        rtrace(testn);
+    }
+}
+
+fn rtrace<'s, O, C, E>(testn: &Test<TestRTracer<'s, C>, Span<'s>, (Span<'s>, O), E>)
+where
+    O: Debug,
+    E: Debug,
+    C: Code,
+{
+    struct TracerDebug<'a, 's, C: Code> {
+        trace: &'a RTracer<'s, C>,
+    }
+
+    impl<'a, 's, C: Code> Debug for TracerDebug<'a, 's, C> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            self.trace.write(f, DebugWidth::Medium)
+        }
+    }
+
+    println!();
+    println!(
+        "when parsing '{}' in {}ns =>",
+        restrict(DebugWidth::Medium, testn.span),
+        testn.duration.as_nanos()
+    );
+
+    let trace = &testn.x.trace;
+
+    println!("{:?}", TracerDebug { trace });
 
     match &testn.result {
         Ok((rest, token)) => {

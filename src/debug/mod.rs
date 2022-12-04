@@ -4,6 +4,7 @@ use nom::bytes::complete::take_while_m_n;
 use nom::InputIter;
 
 pub mod error;
+pub mod rtracer;
 pub mod tracer;
 
 pub fn restrict(w: DebugWidth, span: Span<'_>) -> String {
