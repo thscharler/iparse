@@ -7,6 +7,8 @@ pub mod test;
 pub mod test2;
 pub mod tracer;
 
+pub use crate::debug::restrict_n;
+
 use crate::error::ParserError;
 use crate::tracer::Track;
 use nom_locate::LocatedSpan;
