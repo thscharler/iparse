@@ -341,12 +341,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     }
 }
 
-impl<'s, C: Code> Default for CTracer<'s, C> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 // Track -----------------------------------------------------------------
 
 /// Hint at how the ExpectTrack and SuggestTrack were used.

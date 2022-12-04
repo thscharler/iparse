@@ -347,7 +347,11 @@ where
         match &self.result {
             Ok((rest, _)) => {
                 if **rest != test {
-                    println!("FAIL: Rest mismatch {} <> {}", **rest, test);
+                    println!(
+                        "FAIL: Rest mismatch {} <> {}",
+                        restrict(DebugWidth::Medium, *rest),
+                        test
+                    );
                     self.flag_fail();
                 }
             }

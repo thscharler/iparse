@@ -72,7 +72,7 @@ pub trait Parser<'s, O, C: Code> {
     fn id() -> C;
 
     /// Possible look-ahead.
-    fn lah(_: Span<'s>) -> bool {
+    fn lah(_span: Span<'s>) -> bool {
         true
     }
 

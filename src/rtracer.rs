@@ -1,4 +1,3 @@
-use crate::debug::restrict;
 use crate::debug::rtracer::debug_rtracer;
 use crate::error::{DebugWidth, Expect, ParserError, Suggest};
 use crate::{Code, ParserResult, Span, Tracer};
@@ -44,21 +43,21 @@ impl<'s, C: Code> Tracer<'s, C> for RTracer<'s, C> {
 
     /// Adds a suggestion for the current stack frame.
     fn suggest(&self, suggest: C, span: Span<'s>) {
-        self.debug(format!(
-            "suggest {}:\"{}\" ...",
-            suggest,
-            restrict(DebugWidth::Medium, span)
-        ));
+        // self.debug(format!(
+        //     "suggest {}:\"{}\" ...",
+        //     suggest,
+        //     restrict(DebugWidth::Medium, span)
+        // ));
         self.add_suggest(suggest, span);
     }
 
     /// Keep track of this error.
     fn stash(&self, err: ParserError<'s, C>) {
-        self.debug(format!(
-            "expect {}:\"{}\" ...",
-            err.code,
-            restrict(DebugWidth::Medium, err.span)
-        ));
+        // self.debug(format!(
+        //     "expect {}:\"{}\" ...",
+        //     err.code,
+        //     restrict(DebugWidth::Medium, err.span)
+        // ));
         self.add_expect(err.code, err.span);
         self.append_expect(err.expect);
         self.append_suggest(err.suggest);
@@ -137,7 +136,7 @@ impl<'s, C: Code> RTracer<'s, C> {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: self.parent_vec(),
+            parents: self.parent_vec(), //TODO?
         })
     }
 
@@ -178,7 +177,7 @@ impl<'s, C: Code> RTracer<'s, C> {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: self.parent_vec(),
+            parents: self.parent_vec(), //TODO:?
         })
     }
 
@@ -256,12 +255,6 @@ impl<'s, C: Code> RTracer<'s, C> {
 
     fn track_exit(&self) {}
 }
-
-// impl<'s, C: Code> Default for RTracer<'s, C> {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
 
 // Track -----------------------------------------------------------------
 
