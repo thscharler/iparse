@@ -5,7 +5,7 @@ use iparse::test::{test_parse, Trace};
 use iparse::tracer::CTracer;
 use iparse::TrackParseResult;
 use iparse::{
-    Code, IntoParserResult, LookAhead, Parser, ParserNomResult, ParserResult, Span, Tracer,
+    Code, IntoParserResultAddSpan, LookAhead, Parser, ParserNomResult, ParserResult, Span, Tracer,
 };
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
@@ -85,8 +85,8 @@ pub struct NonTerminal2<'s> {
     pub span: Span<'s>,
 }
 
-impl<'s, T> IntoParserResult<'s, ICode, T> for Result<T, ParseIntError> {
-    fn into_parser_err(self, span: Span<'s>) -> ParserResult<'s, ICode, T> {
+impl<'s, T> IntoParserResultAddSpan<'s, ICode, T> for Result<T, ParseIntError> {
+    fn into_with_span(self, span: Span<'s>) -> ParserResult<'s, ICode, T> {
         match self {
             Ok(v) => Ok(v),
             Err(_) => Err(ParserError::new(ICInteger, span)),
@@ -194,7 +194,7 @@ impl<'s> Parser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
             Ok((rest, tok)) => (
                 rest,
                 TerminalC {
-                    term: (*tok).parse::<u32>().into_parser_err(tok).track(trace)?,
+                    term: (*tok).parse::<u32>().into_with_span(tok).track(trace)?,
                     span: tok,
                 },
             ),

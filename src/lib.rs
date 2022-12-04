@@ -36,13 +36,32 @@ pub trait Code: Copy + Display + Debug + PartialEq {
     }
 }
 
-/// Adds a span as location and converts the error to a ParserError.
-pub trait IntoParserResult<'s, C, O>
+/// Adds a span as location and converts the foreign error to a ParserError.
+pub trait IntoParserResultAddSpan<'s, C, O>
 where
     C: Code,
 {
-    /// Maps some error and adds the information of the span where the error occured.
-    fn into_parser_err(self, span: Span<'s>) -> ParserResult<'s, C, O>;
+    /// Maps some error and adds the information of the span where the error occurred.
+    fn into_with_span(self, span: Span<'s>) -> ParserResult<'s, C, O>;
+}
+
+/// Adds a code and converts the foreign error to a ParserError.
+/// And wraps it up in a ParserResult.
+pub trait IntoParserResultAddCode<'s, C, O>
+where
+    C: Code,
+{
+    /// Maps some error with a special error code.
+    fn into_with_code(self, code: C) -> ParserResult<'s, C, O>;
+}
+
+/// Adds a code and converts the foreign error to a ParserError.
+pub trait IntoParserError<'s, C>
+where
+    C: Code,
+{
+    /// Maps some error with a special error code.
+    fn into_with_code(self, code: C) -> ParserError<'s, C>;
 }
 
 /// Trait for one parser function.

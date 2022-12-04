@@ -1,5 +1,5 @@
 use crate::debug::restrict;
-use crate::{Code, Span};
+use crate::{Code, IntoParserError, IntoParserResultAddCode, ParserResult, Span};
 use nom::error::ErrorKind;
 use std::error::Error;
 use std::fmt;
@@ -164,6 +164,43 @@ where
     }
 }
 
+impl<'s, C, O> IntoParserResultAddCode<'s, C, O> for ParserResult<'s, C, O>
+where
+    C: Code,
+{
+    fn into_with_code(self, code: C) -> ParserResult<'s, C, O> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into_code(code)),
+        }
+    }
+}
+
+impl<'s, C> IntoParserError<'s, C> for nom::Err<ParserError<'s, C>>
+where
+    C: Code,
+{
+    fn into_with_code(self, code: C) -> ParserError<'s, C> {
+        match self {
+            nom::Err::Error(e) => e.into_code(code),
+            nom::Err::Failure(e) => e.into_code(code),
+            nom::Err::Incomplete(_) => unreachable!(),
+        }
+    }
+}
+
+impl<'s, C, O> IntoParserResultAddCode<'s, C, O> for Result<O, nom::Err<ParserError<'s, C>>>
+where
+    C: Code,
+{
+    fn into_with_code(self, code: C) -> ParserResult<'s, C, O> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into_with_code(code)),
+        }
+    }
+}
+
 impl<'s, C> From<nom::Err<nom::error::Error<Span<'s>>>> for ParserError<'s, C>
 where
     C: Code,
@@ -173,6 +210,32 @@ where
             nom::Err::Error(e) => ParserError::new_with_nom(C::NOM_ERROR, e.code, e.input),
             nom::Err::Failure(e) => ParserError::new_with_nom(C::NOM_FAILURE, e.code, e.input),
             nom::Err::Incomplete(_) => unreachable!(),
+        }
+    }
+}
+
+impl<'s, C> IntoParserError<'s, C> for nom::Err<nom::error::Error<Span<'s>>>
+where
+    C: Code,
+{
+    fn into_with_code(self, code: C) -> ParserError<'s, C> {
+        match self {
+            nom::Err::Error(e) => ParserError::new_with_nom(code, e.code, e.input),
+            nom::Err::Failure(e) => ParserError::new_with_nom(code, e.code, e.input),
+            nom::Err::Incomplete(_) => unreachable!(),
+        }
+    }
+}
+
+impl<'s, C, O> IntoParserResultAddCode<'s, C, O>
+    for Result<O, nom::Err<nom::error::Error<Span<'s>>>>
+where
+    C: Code,
+{
+    fn into_with_code(self, code: C) -> ParserResult<'s, C, O> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into_with_code(code)),
         }
     }
 }
