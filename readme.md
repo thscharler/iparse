@@ -297,18 +297,54 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
 The trait ParseAsOptional allows to convert a Err(ParserError) to an 
 Ok(Option<T>). This is the default way to mark a subparser as optional.
 
+## Note 6
 
+Some example for a loop. 
+Looks solid to use a mut loop-variable but only modify it at the border.
 
+```rust
+pub struct ParseNonTerminal3;
 
-## Note 5
+impl<'s> Parser<'s, (), ICode> for ParseNonTerminal3 {
+    fn id() -> ICode {
+        ICNonTerminal3
+    }
 
-Repetition: TODO
+    fn parse<'t>(trace: &'t impl Tracer<'s, ICode>, rest: Span<'s>) -> IParserResult<'s, ()> {
+        let mut loop_rest = rest;
+        loop {
+            let rest2 = loop_rest;
 
+            let (rest2, a) = ParseTerminalA::parse(trace, rest2).track(trace)?;
 
+            let (rest2, b) = match ParseTerminalB::parse(trace, rest2) {
+                Ok((rest3, b)) => (rest3, Some(b)),
+                Err(e) => {
+                    trace.suggest(e.code, e.span);
+                    (rest2, None)
+                }
+            };
+
+            if rest2.is_empty() {
+                break;
+            }
+
+            // endless loop
+            if loop_rest == rest2 {
+                return trace.err(ParserError::new(ICNonTerminal3, rest2));
+            }
+
+            loop_rest = rest2;
+        }
+
+        trace.ok(rest, rest.take(0), ())
+    }
+}
+```
 
 # Appendix B
 
-# Noteworthy 1
+## Noteworthy 1
 
 There are more conversion traits:
 * IntoParserResultAddCode
@@ -317,12 +353,12 @@ There are more conversion traits:
 The std::convert::Into is implemented for nom types to do a 
 default conversion into ParserError.
 
-# Noteworthy 2
+## Noteworthy 2
 
 There is a second tracer RTracer. It's only used to run experiments.
 The same with NoTracer that simply does nothing. 
 
-# Noteworthy 3
+## Noteworthy 3
 
 Besides span_union() there are also get_lines_before(), getlines_after()
 and get_lines_around().

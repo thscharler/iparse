@@ -7,6 +7,7 @@ use iparse::TrackParseResult;
 use iparse::{Code, IntoParserResultAddSpan, Parser, ParserNomResult, ParserResult, Span, Tracer};
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
+use nom::InputTake;
 use std::fmt::{Display, Formatter};
 use std::num::ParseIntError;
 
@@ -21,6 +22,7 @@ pub enum ICode {
     ICTerminalC,
     ICNonTerminal1,
     ICNonTerminal2,
+    ICNonTerminal3,
     ICInteger,
 }
 
@@ -41,6 +43,7 @@ impl Display for ICode {
             ICTerminalB => "TerminalB",
             ICNonTerminal1 => "NonTerminal1",
             ICNonTerminal2 => "NonTerminal2",
+            ICNonTerminal3 => "NonTerminal3",
             ICTerminalC => "TerminalC",
         };
         write!(f, "{}", name)
@@ -254,6 +257,44 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
         };
 
         trace.ok(rest, span, NonTerminal2 { a, b, c, span })
+    }
+}
+
+pub struct ParseNonTerminal3;
+
+impl<'s> Parser<'s, (), ICode> for ParseNonTerminal3 {
+    fn id() -> ICode {
+        ICNonTerminal3
+    }
+
+    fn parse<'t>(trace: &'t impl Tracer<'s, ICode>, rest: Span<'s>) -> IParserResult<'s, ()> {
+        let mut loop_rest = rest;
+        loop {
+            let rest2 = loop_rest;
+
+            let (rest2, a) = ParseTerminalA::parse(trace, rest2).track(trace)?;
+
+            let (rest2, b) = match ParseTerminalB::parse(trace, rest2) {
+                Ok((rest3, b)) => (rest3, Some(b)),
+                Err(e) => {
+                    trace.suggest(e.code, e.span);
+                    (rest2, None)
+                }
+            };
+
+            if rest2.is_empty() {
+                break;
+            }
+
+            // endless loop
+            if loop_rest == rest2 {
+                return trace.err(ParserError::new(ICNonTerminal3, rest2));
+            }
+
+            loop_rest = rest2;
+        }
+
+        trace.ok(rest, rest.take(0), ())
     }
 }
 
