@@ -3,6 +3,8 @@
 
 Outline for a handwritten parser.
 
+_The code can be found as example1.rs._
+
 1. Define your function/error codes. They are used interchangeably.
    Add variants for nom::err::Error and nom::err::Failure to work with nom.
    Add a variant for incomplete parsing.
@@ -79,7 +81,7 @@ pub fn parse_a(rest: Span<'_>) -> IParserResult<'_, TerminalA> {
          },
       )),
       Err(nom::Err::Error(e)) if e.is_kind(nom::error::ErrorKind::Tag) => {
-         Err(e.as_err(ICode::ICTerminalA))
+         Err(e.into_code(ICTerminalA))
       }
       Err(e) => Err(e.into()),
    }
@@ -99,11 +101,11 @@ pub struct ParseTerminalA;
 
 impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
    fn id() -> ICode {
-      ICode::ICTerminalA
+      ICTerminalA
    }
 
-   fn lah(_: Span<'s>) -> LookAhead {
-      LookAhead::Parse
+   fn lah(_: Span<'s>) -> bool {
+      true
    }
 
    fn parse<'t>(
@@ -117,18 +119,18 @@ impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
          Err(e) => return trace.err(e),
       };
 
-      trace.ok(token.span, rest, token)
+      trace.ok(rest, token.span, token)
    }
 }
 ```
 
 5. To call the parser use any impl of Tracer. The standard today is CTracer.
+The const type argument states wether the actual tracking will be done or not.
 
 ```rust
-fn main() {
-   let trace = CTracer::new();
-   let res = ParseTerminalA::parse(&trace, Span::new("A"));
-   dbg!(&res);
+fn run_parser() -> IParserResult<'static, TerminalA<'static>> {
+   let trace: CTracer<_, true> = CTracer::new();
+   ParseTerminalA::parse(&trace, Span::new("A"))
 }
 ```
 
@@ -142,6 +144,7 @@ When calling q() a report type is needed. These are
 * CheckDump - Output the error/success. Panics if any of the test-fn failed.
 * Trace - Output the complete trace. Doesn't panic.
 * CheckTrace - Output the complete trace. Panics if any of the test-fn failed.
+* Timing - Output only the timings. 
 
 ```rust
 type R = Trace;
@@ -153,15 +156,16 @@ pub fn test_terminal_a() {
 }
  ```
 
-# Notes
+
+# Appendix A
 
 ## Note 1
 
-There is IntoParserError that can be implemented to import external errors.
+There is IntoParserResultAddSpan that can be implemented to import external errors.
 
 ```rust
-impl<'s, T> IntoParserResult<'s, ICode, T> for Result<T, ParseIntError> {
-   fn into_parser_err(self, span: Span<'s>) -> ParserResult<'s, ICode, T> {
+impl<'s, T> IntoParserResultAddSpan<'s, ICode, T> for Result<T, ParseIntError> {
+   fn into_with_span(self, span: Span<'s>) -> ParserResult<'s, ICode, T> {
       match self {
          Ok(v) => Ok(v),
          Err(_) => Err(ParserError::new(ICInteger, span)),
@@ -176,29 +180,29 @@ And to use it ...
 pub struct ParseTerminalC;
 
 impl<'s> Parser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
-    fn id() -> ICode {
-        ICTerminalC
-    }
+   fn id() -> ICode {
+      ICTerminalC
+   }
 
-    fn parse<'t>(
-        trace: &'t impl Tracer<'s, ICode>,
-        rest: Span<'s>,
-    ) -> IParserResult<'s, TerminalC<'s>> {
-        trace.enter(Self::id(), rest);
+   fn parse<'t>(
+      trace: &'t impl Tracer<'s, ICode>,
+      rest: Span<'s>,
+   ) -> IParserResult<'s, TerminalC<'s>> {
+      trace.enter(Self::id(), rest);
 
-        let (rest, tok) = match nom_parse_c(rest) {
-            Ok((rest, tok)) => (
-                rest,
-                TerminalC {
-                    term: (*tok).parse::<u32>().into_parser_err(tok).track(trace)?,
-                    span: tok,
-                },
-            ),
-            Err(e) => return trace.err(e.into()),
-        };
+      let (rest, tok) = match nom_parse_c(rest) {
+         Ok((rest, tok)) => (
+            rest,
+            TerminalC {
+               term: (*tok).parse::<u32>().into_with_span(tok).track(trace)?,
+               span: tok,
+            },
+         ),
+         Err(e) => return trace.err(e.into()),
+      };
 
-        trace.ok(tok.span, rest, tok)
-    }
+      trace.ok(rest, tok.span, tok)
+   }
 }
 ```
 
@@ -207,7 +211,9 @@ impl<'s> Parser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
 The trait iparse::tracer::TrackParseResult make the composition of parser 
 easier. It provides a track() function for the parser result, that notes a 
 potential error and returns the result. This in turn can be used for the ? 
-operator.
+operator. 
+
+It has a second method track_as() that allows to change the error code.
 
 ```rust
 pub struct ParseNonTerminal1;
@@ -234,15 +240,12 @@ impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for NonTerminal1<'s> {
 ## Note 3
 
 It is good to have the full span for non-terminals in the parser. There is no
-way to glue the spans together via nom. So there is unsafe span_union().
-Should be fine as long as the two spans passed in come from the same original 
-span. Which is almost a given in a parser. Add the correct ordering of the
-parameters and all should be fine.
+way to glue the spans together via nom, so there is span_union().
 
 ```rust
-fn ok() {
-   let span = unsafe { span_union(a.span, b.span) };
-}
+# fn dummy() {
+   let span = span_union(a.span, b.span);
+# }
 ```
 
 ## Note 4
@@ -291,4 +294,35 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
 
 ## Note 5
 
+The trait ParseAsOptional allows to convert a Err(ParserError) to an 
+Ok(Option<T>). This is the default way to mark a subparser as optional.
+
+
+
+
+## Note 5
+
 Repetition: TODO
+
+
+
+# Appendix B
+
+# Noteworthy 1
+
+There are more conversion traits:
+* IntoParserResultAddCode
+* IntoParserError
+
+The std::convert::Into is implemented for nom types to do a 
+default conversion into ParserError.
+
+# Noteworthy 2
+
+There is a second tracer RTracer. It's only used to run experiments.
+The same with NoTracer that simply does nothing. 
+
+# Noteworthy 3
+
+Besides span_union() there are also get_lines_before(), getlines_after()
+and get_lines_around().

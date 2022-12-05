@@ -4,9 +4,7 @@ use iparse::span::span_union;
 use iparse::test::{test_parse, Trace};
 use iparse::tracer::CTracer;
 use iparse::TrackParseResult;
-use iparse::{
-    Code, IntoParserResultAddSpan, LookAhead, Parser, ParserNomResult, ParserResult, Span, Tracer,
-};
+use iparse::{Code, IntoParserResultAddSpan, Parser, ParserNomResult, ParserResult, Span, Tracer};
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
 use std::fmt::{Display, Formatter};
@@ -129,8 +127,8 @@ impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
         ICTerminalA
     }
 
-    fn lah(_: Span<'s>) -> LookAhead {
-        LookAhead::Parse
+    fn lah(_: Span<'s>) -> bool {
+        true
     }
 
     fn parse<'t>(
@@ -219,7 +217,7 @@ impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for ParseNonTerminal1 {
         let (rest, a) = ParseTerminalA::parse(trace, rest).track(trace)?;
         let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
 
-        let span = unsafe { span_union(a.span, b.span) };
+        let span = span_union(a.span, b.span);
 
         trace.ok(rest, span, NonTerminal1 { a, b, span })
     }
@@ -249,12 +247,10 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
         let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
         let (rest, c) = ParseTerminalC::parse(trace, rest).track(trace)?;
 
-        let span = unsafe {
-            if let Some(a) = &a {
-                span_union(a.span, c.span)
-            } else {
-                c.span
-            }
+        let span = if let Some(a) = &a {
+            span_union(a.span, c.span)
+        } else {
+            c.span
         };
 
         trace.ok(rest, span, NonTerminal2 { a, b, c, span })
@@ -262,7 +258,7 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
 }
 
 fn run_parser() -> IParserResult<'static, TerminalA<'static>> {
-    let trace = CTracer::new();
+    let trace: CTracer<_, true> = CTracer::new();
     ParseTerminalA::parse(&trace, Span::new("A"))
 }
 
@@ -274,16 +270,14 @@ fn main() {
     test_nonterminal2();
 }
 
-type R = Trace;
+const R: Trace = Trace;
 
 // #[test]
 pub fn test_terminal_a() {
-    test_parse("A", ParseTerminalA::parse).okok().q::<R>();
-    test_parse("AA", ParseTerminalA::parse).errerr().q::<R>();
+    test_parse("A", ParseTerminalA::parse).okok().q(&R);
+    test_parse("AA", ParseTerminalA::parse).errerr().q(&R);
 }
 
 pub fn test_nonterminal2() {
-    test_parse("AAA", ParseNonTerminal2::parse)
-        .errerr()
-        .q::<R>();
+    test_parse("AAA", ParseNonTerminal2::parse).errerr().q(&R);
 }

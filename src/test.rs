@@ -104,6 +104,7 @@ macro_rules! optional {
 // General stuff ---------------------------------------------------------
 
 /// Run a test for a nom parser.
+/// Uses the default nom::error::Error
 #[must_use]
 pub fn test_nom<'s, T: Debug>(
     span: &'s str,
@@ -125,6 +126,7 @@ pub fn test_nom<'s, T: Debug>(
 }
 
 /// Run a test for a nom parser.
+/// Uses ParserError as nom error.
 #[must_use]
 pub fn test_nom2<'s, C: Code, T: Debug>(
     span: &'s str,
@@ -207,9 +209,7 @@ pub fn test_parse_false<'a, 's, V: Debug, C: Code>(
     let trace: CTracer<C, false> = CTracer::new();
 
     let now = Instant::now();
-    for _ in 0..100 {
-        let _ = fn_test(&trace, span);
-    }
+    let _ = fn_test(&trace, span);
     let elapsed = now.elapsed();
     let result = fn_test(&trace, span);
 
@@ -238,9 +238,7 @@ pub fn test_rparse<'a, 's, V: Debug, C: Code>(
     let trace = RTracer::new();
 
     let now = Instant::now();
-    for _ in 0..100 {
-        let _ = fn_test(&trace, span);
-    }
+    let _ = fn_test(&trace, span);
     let elapsed = now.elapsed();
     let result = fn_test(&trace, span);
 
@@ -266,9 +264,7 @@ pub fn test_noparse<'a, 's, V: Debug, C: Code>(
     let trace = NoTracer::new();
 
     let now = Instant::now();
-    for _ in 0..100 {
-        let _ = fn_test(&trace, span);
-    }
+    let _ = fn_test(&trace, span);
     let elapsed = now.elapsed();
     let result = fn_test(&trace, span);
 

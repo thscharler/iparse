@@ -19,6 +19,7 @@ pub unsafe fn span_union_opt<'a>(span0: Option<Span<'a>>, span1: Span<'a>) -> Sp
     }
 }
 
+/// Returns n lines before and after the current line if available.
 pub fn get_lines_around(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
     let mut lines = get_lines_before(span0, n);
     lines.pop();
@@ -27,6 +28,7 @@ pub fn get_lines_around(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
     lines
 }
 
+/// Returns the current line and n lines afterwards if available.
 pub fn get_lines_after(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
     let line0 = span0.location_line();
     let offset0 = span0.location_offset();
@@ -97,8 +99,7 @@ pub fn get_lines_after(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
     r
 }
 
-/// Return n lines before the span, if possible. Maybe less.
-/// The current line is completed and output too and not included in the count.
+/// Returns the current line and n lines before if available.
 pub fn get_lines_before(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
     let line0 = span0.location_line();
     let offset0 = span0.location_offset();
@@ -161,38 +162,8 @@ pub fn get_lines_before(span0: Span<'_>, n: u32) -> Vec<Span<'_>> {
     r
 }
 
-/// Returns the slice before any offset.
-///
-/// Safety
-///
-/// * `data` must be [valid] for reads for `len * mem::size_of::<T>()` many bytes,
-///   and it must be properly aligned. This means in particular:
-///
-///     * The entire memory range of this slice must be contained within a single allocated object!
-///       Slices can never span across multiple allocated objects. See [below](#incorrect-usage)
-///       for an example incorrectly not taking this into account.
-///     * `data` must be non-null and aligned even for zero-length slices. One
-///       reason for this is that enum layout optimizations may rely on references
-///       (including slices of any length) being aligned and non-null to distinguish
-///       them from other data. You can obtain a pointer that is usable as `data`
-///       for zero-length slices using [`NonNull::dangling()`].
-///
-///     => We use only a single Span, should be ok.
-///
-/// * `data` must point to `len` consecutive properly initialized values of type `T`.
-///
-///     => Same.
-///
-/// * The memory referenced by the returned slice must not be mutated for the duration
-///   of lifetime `'a`, except inside an `UnsafeCell`.
-///
-///     => No mutation occurs.
-///
-/// * The total size `len * mem::size_of::<T>()` of the slice must be no larger than `isize::MAX`.
-///
-///     => Is checked by an assert.
-///
-pub fn get_unoffsetted_span(span0: Span<'_>) -> Span<'_> {
+#[allow(dead_code)]
+fn get_unoffsetted_span(span0: Span<'_>) -> Span<'_> {
     unsafe {
         let slice = get_unoffsetted_slice(span0);
         // span0 was a valid str before so this should be ok.
