@@ -8,9 +8,7 @@
     <cargoProject FILE="$PROJECT_DIR$/../openformula/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="Refine FilterFn's lifetimes. &#10;&#10;Add P:Default is simpler. &#10;&#10;clippy complains about assert!(false)">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="Refine FilterFn's lifetimes. &#10;&#10;Add P:Default is simpler. &#10;&#10;clippy complains about assert!(false)" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -150,11 +148,11 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Build" />
-      <item itemvalue="Cargo.Run" />
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Doc" />
+      <item itemvalue="Cargo.Run" />
+      <item itemvalue="Cargo.Test" />
     </list>
   </component>
   <component name="RustProjectSettings">
