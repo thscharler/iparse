@@ -7,7 +7,7 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="Refine FilterFn's lifetimes. &#10;&#10;Add P:Default is simpler. &#10;&#10;clippy complains about assert!(false)" />
+    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="project files" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -47,7 +47,7 @@
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "last_opened_file_path": "C:/Users/stommy/Documents/StableProjects/iparse",
+    "last_opened_file_path": "C:/Users/stommy/Documents/StableProjects/elcom",
     "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.0",
@@ -232,7 +232,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669839872079</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="project files">
+      <created>1670605839885</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1670605839885</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -270,7 +277,8 @@
     <MESSAGE value="change write_debug to write and use a fmt::Write instead of fmt::Formatter." />
     <MESSAGE value="transfer test framework from openformula." />
     <MESSAGE value="Refine FilterFn's lifetimes. &#10;&#10;Add P:Default is simpler. &#10;&#10;clippy complains about assert!(false)" />
-    <option name="LAST_COMMIT_MESSAGE" value="Refine FilterFn's lifetimes. &#10;&#10;Add P:Default is simpler. &#10;&#10;clippy complains about assert!(false)" />
+    <MESSAGE value="project files" />
+    <option name="LAST_COMMIT_MESSAGE" value="project files" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
