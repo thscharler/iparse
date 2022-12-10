@@ -108,7 +108,6 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
             err.tracing = true;
             // special codes are not very usefull in this position.
             if !err.code.is_special() {
-                // todo: should be the job of the concrete parser
                 self.add_expect(err.code, err.span);
             } else {
                 self.add_expect(self.func(), err.span);
@@ -116,7 +115,7 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
         }
 
         // when backtracking we always replace the current error code.
-        // todo: this is somewhat useless.
+        // conclusion: this is useless.
         // err.code = self.func();
 
         let exp = self.pop_expect();
@@ -167,6 +166,18 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
             .expect("Vec<Expect> is empty")
     }
 
+    // todo: refcell is very annoying. see that tracer can live without.
+    pub fn to_expect(&self) -> Vec<Expect<'s, C>> {
+        let vec = self.expect.replace(Vec::new());
+
+        let mut result = Vec::new();
+        for mut v in vec.into_iter() {
+            result.append(&mut v.list);
+        }
+
+        result
+    }
+
     fn add_expect(&self, code: C, span: Span<'s>) {
         self.expect
             .borrow_mut()
@@ -199,6 +210,7 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
             .expect("Vec<Suggest> is empty")
     }
 
+    // todo: refcell is very annoying. see that tracer can live without.
     pub fn to_suggest(&self) -> Vec<Suggest<'s, C>> {
         let vec = self.suggest.replace(Vec::new());
 
