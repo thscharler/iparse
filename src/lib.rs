@@ -67,18 +67,36 @@ where
     fn into_with_code(self, code: C) -> ParserError<'s, C>;
 }
 
-/// Trait for one parser function.
+/// Trait for one static parser.
 pub trait Parser<'s, O, C: Code> {
     /// Function and error code.
     fn id() -> C;
 
     /// Possible look-ahead.
-    fn lah(_span: Span<'s>) -> bool {
+    fn lah(span: Span<'s>) -> bool {
+        !span.is_empty()
+    }
+
+    /// Parses the expression.
+    fn parse<'t>(
+        trace: &'t impl Tracer<'s, C>,
+        rest: Span<'s>,
+    ) -> ParserResult<'s, C, (Span<'s>, O)>;
+}
+
+/// Trait for one parser with configuration.
+pub trait ConfParser<'s, O, C: Code> {
+    /// Function and error code.
+    fn id(&self) -> C;
+
+    /// Possible look-ahead.
+    fn lah(&self, _span: Span<'s>) -> bool {
         true
     }
 
     /// Parses the expression.
     fn parse<'t>(
+        &self,
         trace: &'t impl Tracer<'s, C>,
         rest: Span<'s>,
     ) -> ParserResult<'s, C, (Span<'s>, O)>;

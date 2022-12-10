@@ -52,7 +52,21 @@ impl<'s, C: Code> ParserError<'s, C> {
         }
     }
 
-    /// New error.
+    /// New error adds the code as Suggestion too.
+    pub fn new_suggest(code: C, span: Span<'s>) -> Self {
+        Self {
+            code,
+            span,
+            tracing: false,
+            hints: vec![Hints::Suggest(Suggest {
+                code,
+                span,
+                parents: vec![],
+            })],
+        }
+    }
+
+    /// New error. Adds information about a nom error.
     pub fn new_with_nom(code: C, nom_code: ErrorKind, span: Span<'s>) -> Self {
         Self {
             code,
@@ -140,6 +154,14 @@ impl<'s, C: Code> ParserError<'s, C> {
         for exp in exp.into_iter() {
             self.hints.push(Hints::Expect(exp));
         }
+    }
+
+    pub fn add_suggest(&mut self, code: C, span: Span<'s>) {
+        self.hints.push(Hints::Suggest(Suggest {
+            code,
+            span,
+            parents: Vec::new(),
+        }))
     }
 
     pub fn append_suggest(&mut self, sug: Vec<Suggest<'s, C>>) {

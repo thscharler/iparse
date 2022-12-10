@@ -4,7 +4,9 @@ use iparse::span::span_union;
 use iparse::test::{test_parse, Trace};
 use iparse::tracer::CTracer;
 use iparse::TrackParseResult;
-use iparse::{Code, IntoParserResultAddSpan, Parser, ParserNomResult, ParserResult, Span, Tracer};
+use iparse::{
+    Code, IntoParserResultAddSpan, ParserNomResult, ParserResult, Span, StatelessParser, Tracer,
+};
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
 use nom::InputTake;
@@ -125,7 +127,7 @@ pub fn parse_a(rest: Span<'_>) -> IParserResult<'_, TerminalA> {
 
 pub struct ParseTerminalA;
 
-impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
+impl<'s> StatelessParser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
     fn id() -> ICode {
         ICTerminalA
     }
@@ -151,7 +153,7 @@ impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
 
 pub struct ParseTerminalB;
 
-impl<'s> Parser<'s, TerminalB<'s>, ICode> for ParseTerminalB {
+impl<'s> StatelessParser<'s, TerminalB<'s>, ICode> for ParseTerminalB {
     fn id() -> ICode {
         ICTerminalB
     }
@@ -180,7 +182,7 @@ impl<'s> Parser<'s, TerminalB<'s>, ICode> for ParseTerminalB {
 
 pub struct ParseTerminalC;
 
-impl<'s> Parser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
+impl<'s> StatelessParser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
     fn id() -> ICode {
         ICTerminalC
     }
@@ -208,7 +210,7 @@ impl<'s> Parser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
 
 pub struct ParseNonTerminal1;
 
-impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for ParseNonTerminal1 {
+impl<'s> StatelessParser<'s, NonTerminal1<'s>, ICode> for ParseNonTerminal1 {
     fn id() -> ICode {
         ICNonTerminal1
     }
@@ -228,7 +230,7 @@ impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for ParseNonTerminal1 {
 
 pub struct ParseNonTerminal2;
 
-impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
+impl<'s> StatelessParser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
     fn id() -> ICode {
         ICNonTerminal1
     }
@@ -262,7 +264,7 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
 
 pub struct ParseNonTerminal3;
 
-impl<'s> Parser<'s, (), ICode> for ParseNonTerminal3 {
+impl<'s> StatelessParser<'s, (), ICode> for ParseNonTerminal3 {
     fn id() -> ICode {
         ICNonTerminal3
     }
