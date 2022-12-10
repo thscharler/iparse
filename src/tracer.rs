@@ -91,7 +91,8 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
         // Drop at the toplevel if no error occurs?
         if !self.suggest.borrow().is_empty() {
             self.append_suggest(suggest.list);
-            //self.track_suggest(Usage::Drop, suggest.list);
+        } else {
+            self.suggest.borrow_mut().push(suggest);
         }
 
         self.track_exit();
@@ -196,6 +197,17 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
             .borrow_mut()
             .pop()
             .expect("Vec<Suggest> is empty")
+    }
+
+    pub fn to_suggest(&self) -> Vec<Suggest<'s, C>> {
+        let vec = self.suggest.replace(Vec::new());
+
+        let mut result = Vec::new();
+        for mut v in vec.into_iter() {
+            result.append(&mut v.list);
+        }
+
+        result
     }
 
     fn add_suggest(&self, code: C, span: Span<'s>) {

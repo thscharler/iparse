@@ -182,58 +182,12 @@ impl<'s, C: Code> ParserError<'s, C> {
 
     /// Get Expect grouped by offset into the string, starting with max first.
     pub fn expect_grouped_by_offset(&self) -> Vec<(usize, Vec<&Expect<'s, C>>)> {
-        let mut sorted = self.expect().clone();
-        sorted.reverse();
-        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
-
-        // per offset
-        let mut grp_offset = 0;
-        let mut grp = Vec::new();
-        let mut subgrp = Vec::new();
-        for exp in &sorted {
-            if exp.span.location_offset() != grp_offset {
-                if !subgrp.is_empty() {
-                    grp.push((grp_offset, subgrp));
-                    subgrp = Vec::new();
-                }
-                grp_offset = exp.span.location_offset();
-            }
-
-            subgrp.push(*exp);
-        }
-        if !subgrp.is_empty() {
-            grp.push((grp_offset, subgrp));
-        }
-
-        grp
+        Expect::group_by_offset(self.expect())
     }
 
     /// Get Expect grouped by offset into the string, starting with max first.
     pub fn expect_grouped_by_line(&self) -> Vec<(u32, Vec<&Expect<'s, C>>)> {
-        let mut sorted = self.expect().clone();
-        sorted.reverse();
-        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
-
-        // per offset
-        let mut grp_line = 0;
-        let mut grp = Vec::new();
-        let mut subgrp = Vec::new();
-        for exp in &sorted {
-            if exp.span.location_line() != grp_line {
-                if !subgrp.is_empty() {
-                    grp.push((grp_line, subgrp));
-                    subgrp = Vec::new();
-                }
-                grp_line = exp.span.location_line();
-            }
-
-            subgrp.push(*exp);
-        }
-        if !subgrp.is_empty() {
-            grp.push((grp_line, subgrp));
-        }
-
-        grp
+        Expect::group_by_line(self.expect())
     }
 
     pub fn suggest(&self) -> Vec<&Suggest<'s, C>> {
@@ -248,58 +202,12 @@ impl<'s, C: Code> ParserError<'s, C> {
 
     /// Get Suggest grouped by offset into the string, starting with max first.
     pub fn suggest_grouped_by_offset(&self) -> Vec<(usize, Vec<&Suggest<'s, C>>)> {
-        let mut sorted = self.suggest().clone();
-        sorted.reverse();
-        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
-
-        // per offset
-        let mut grp_offset = 0;
-        let mut grp = Vec::new();
-        let mut subgrp = Vec::new();
-        for exp in &sorted {
-            if exp.span.location_offset() != grp_offset {
-                if !subgrp.is_empty() {
-                    grp.push((grp_offset, subgrp));
-                    subgrp = Vec::new();
-                }
-                grp_offset = exp.span.location_offset();
-            }
-
-            subgrp.push(*exp);
-        }
-        if !subgrp.is_empty() {
-            grp.push((grp_offset, subgrp));
-        }
-
-        grp
+        Suggest::group_by_offset(self.suggest())
     }
 
     /// Get Suggest grouped by offset into the string, starting with max first.
     pub fn suggest_grouped_by_line(&self) -> Vec<(u32, Vec<&Suggest<'s, C>>)> {
-        let mut sorted = self.suggest().clone();
-        sorted.reverse();
-        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
-
-        // per offset
-        let mut grp_line = 0;
-        let mut grp = Vec::new();
-        let mut subgrp = Vec::new();
-        for exp in &sorted {
-            if exp.span.location_line() != grp_line {
-                if !subgrp.is_empty() {
-                    grp.push((grp_line, subgrp));
-                    subgrp = Vec::new();
-                }
-                grp_line = exp.span.location_line();
-            }
-
-            subgrp.push(*exp);
-        }
-        if !subgrp.is_empty() {
-            grp.push((grp_line, subgrp));
-        }
-
-        grp
+        Suggest::group_by_line(self.suggest())
     }
 }
 
@@ -474,6 +382,78 @@ pub struct Suggest<'s, C> {
     pub parents: Vec<C>,
 }
 
+impl<'s, C> Suggest<'s, C> {
+    pub fn group_by_offset_owned<'a>(
+        vec: &'a Vec<Suggest<'s, C>>,
+    ) -> Vec<(usize, Vec<&'a Suggest<'s, C>>)> {
+        Self::group_by_offset(vec.iter().collect())
+    }
+
+    /// Get Suggest grouped by offset into the string, starting with max first.
+    pub fn group_by_offset<'a>(
+        vec: Vec<&'a Suggest<'s, C>>,
+    ) -> Vec<(usize, Vec<&'a Suggest<'s, C>>)> {
+        let mut sorted = vec;
+        sorted.reverse();
+        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
+
+        // per offset
+        let mut grp_offset = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_offset() != grp_offset {
+                if !subgrp.is_empty() {
+                    grp.push((grp_offset, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_offset = exp.span.location_offset();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_offset, subgrp));
+        }
+
+        grp
+    }
+
+    pub fn group_by_line_owned<'a>(
+        vec: &'a Vec<Suggest<'s, C>>,
+    ) -> Vec<(u32, Vec<&'a Suggest<'s, C>>)> {
+        Self::group_by_line(vec.iter().collect())
+    }
+
+    /// Get Suggest grouped by offset into the string, starting with max first.
+    pub fn group_by_line<'a>(vec: Vec<&'a Suggest<'s, C>>) -> Vec<(u32, Vec<&'a Suggest<'s, C>>)> {
+        let mut sorted = vec;
+        sorted.reverse();
+        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
+
+        // per offset
+        let mut grp_line = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_line() != grp_line {
+                if !subgrp.is_empty() {
+                    grp.push((grp_line, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_line = exp.span.location_line();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_line, subgrp));
+        }
+
+        grp
+    }
+}
+
 /// Expected tokens.
 #[derive(Clone)]
 pub struct Expect<'s, C> {
@@ -483,6 +463,78 @@ pub struct Expect<'s, C> {
     pub span: Span<'s>,
     /// Parser call stack.
     pub parents: Vec<C>,
+}
+
+impl<'s, C> Expect<'s, C> {
+    pub fn group_by_offset_owned<'a>(
+        vec: &'a Vec<Expect<'s, C>>,
+    ) -> Vec<(usize, Vec<&'a Expect<'s, C>>)> {
+        Self::group_by_offset(vec.iter().collect())
+    }
+
+    /// Get Expect grouped by offset into the string, starting with max first.
+    pub fn group_by_offset<'a>(
+        vec: Vec<&'a Expect<'s, C>>,
+    ) -> Vec<(usize, Vec<&'a Expect<'s, C>>)> {
+        let mut sorted = vec;
+        sorted.reverse();
+        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
+
+        // per offset
+        let mut grp_offset = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_offset() != grp_offset {
+                if !subgrp.is_empty() {
+                    grp.push((grp_offset, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_offset = exp.span.location_offset();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_offset, subgrp));
+        }
+
+        grp
+    }
+
+    pub fn group_by_line_owned<'a>(
+        vec: &'a Vec<Expect<'s, C>>,
+    ) -> Vec<(u32, Vec<&'a Expect<'s, C>>)> {
+        Self::group_by_line(vec.iter().collect())
+    }
+
+    /// Get Expect grouped by offset into the string, starting with max first.
+    pub fn group_by_line<'a>(vec: Vec<&'a Expect<'s, C>>) -> Vec<(u32, Vec<&'a Expect<'s, C>>)> {
+        let mut sorted = vec;
+        sorted.reverse();
+        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
+
+        // per offset
+        let mut grp_line = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_line() != grp_line {
+                if !subgrp.is_empty() {
+                    grp.push((grp_line, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_line = exp.span.location_line();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_line, subgrp));
+        }
+
+        grp
+    }
 }
 
 impl From<Option<usize>> for DebugWidth {
