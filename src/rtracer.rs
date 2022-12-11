@@ -137,12 +137,10 @@ impl<'s, C: Code> RTracer<'s, C> {
 // expect
 impl<'s, C: Code> RTracer<'s, C> {
     fn push_expect(&mut self, func: C) {
-        let parent = self.parent_vec().clone();
         self.expect.push(ExpectTrack {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: parent,
         })
     }
 
@@ -151,28 +149,21 @@ impl<'s, C: Code> RTracer<'s, C> {
     }
 
     fn add_expect(&mut self, code: C, span: Span<'s>) {
-        let parent = self.parent_vec().clone();
         self.expect
             .last_mut()
             .expect("Vec<Expect> is empty")
             .list
-            .push(Expect {
-                code,
-                span,
-                parents: parent,
-            })
+            .push(Expect { code, span })
     }
 }
 
 // suggest
 impl<'s, C: Code> RTracer<'s, C> {
     fn push_suggest(&mut self, func: C) {
-        let parent = self.parent_vec().clone();
         self.suggest.push(SuggestTrack {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: parent,
         })
     }
 
@@ -181,16 +172,11 @@ impl<'s, C: Code> RTracer<'s, C> {
     }
 
     fn add_suggest(&mut self, code: C, span: Span<'s>) {
-        let parent = self.parent_vec().clone();
         self.suggest
             .last_mut()
             .expect("Vec<Suggest> is empty")
             .list
-            .push(Suggest {
-                code,
-                span,
-                parents: parent,
-            })
+            .push(Suggest { code, span })
     }
 
     fn append_suggest(&mut self, mut suggest: Vec<Suggest<'s, C>>) {
@@ -220,10 +206,6 @@ impl<'s, C: Code> RTracer<'s, C> {
             .func
             .last()
             .expect("Vec<FnCode> is empty. forgot to trace.enter()")
-    }
-
-    fn parent_vec(&self) -> &Vec<C> {
-        &self.func
     }
 }
 
@@ -277,8 +259,6 @@ pub struct ExpectTrack<'s, C: Code> {
     pub usage: Usage,
     /// Collected Expect values.
     pub list: Vec<Expect<'s, C>>,
-    /// Parser call stack.
-    pub parents: Vec<C>,
 }
 
 /// One per stack frame.
@@ -289,8 +269,6 @@ pub struct SuggestTrack<'s, C: Code> {
     pub usage: Usage,
     /// Collected Suggest values.
     pub list: Vec<Suggest<'s, C>>,
-    /// Parser call stack.
-    pub parents: Vec<C>,
 }
 
 /// One track of the parsing trace.
@@ -306,14 +284,6 @@ impl<'s, C: Code> Track<'s, C> {
         match self {
             Track::Expect(v) => v.func,
             Track::Suggest(v) => v.func,
-        }
-    }
-
-    /// Returns the parser call stack for each branch.
-    pub fn parents(&self) -> &Vec<C> {
-        match self {
-            Track::Expect(v) => &v.parents,
-            Track::Suggest(v) => &v.parents,
         }
     }
 }

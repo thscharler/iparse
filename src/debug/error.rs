@@ -231,16 +231,6 @@ fn debug_expect2_long<C: Code>(
             exp.span.location_offset(),
             restrict(DebugWidth::Long, exp.span)
         )?;
-        if !exp.parents.is_empty() {
-            write!(f, " <")?;
-            for (i, p) in exp.parents.iter().enumerate() {
-                if i > 0 {
-                    write!(f, " ")?;
-                }
-                write!(f, "{}", p)?;
-            }
-            write!(f, ">")?;
-        }
         writeln!(f)?;
     }
 
@@ -252,42 +242,10 @@ fn debug_expect2_medium<C: Code>(
     exp_vec: &Vec<&Expect<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
-    let mut prefix: Vec<Vec<C>> = Vec::new();
-
     for exp in exp_vec {
         indent(f, ind)?;
         write!(f, "{:20}", exp.code)?;
 
-        let (suffix, sigil) = loop {
-            if let Some(last) = prefix.last() {
-                match exp.parents.strip_prefix(last.as_slice()) {
-                    None => {
-                        match prefix.pop() {
-                            None => {
-                                prefix.push(exp.parents.clone());
-                                break (exp.parents.as_slice(), "<<");
-                            }
-                            Some(_) => {}
-                        };
-                    }
-                    Some(suffix) => {
-                        prefix.push(exp.parents.clone());
-                        break (suffix, "++");
-                    }
-                }
-            } else {
-                prefix.push(exp.parents.clone());
-                break (exp.parents.as_slice(), "<<");
-            }
-        };
-
-        write!(f, " {} ", sigil)?;
-        for (i, p) in suffix.iter().enumerate() {
-            if i > 0 {
-                write!(f, " ")?;
-            }
-            write!(f, "{}", p)?;
-        }
         writeln!(f)?;
     }
 
@@ -306,16 +264,6 @@ fn debug_expect2_short<C: Code>(
             exp.code,
             restrict(DebugWidth::Short, exp.span)
         )?;
-        if !exp.parents.is_empty() {
-            write!(f, " <")?;
-            for (i, p) in exp.parents.iter().enumerate() {
-                if i > 0 {
-                    write!(f, " ")?;
-                }
-                write!(f, "{}", p)?;
-            }
-            write!(f, ">")?;
-        }
     }
 
     Ok(())
@@ -337,16 +285,6 @@ fn debug_suggest2_long<C: Code>(
             sug.span.location_offset(),
             restrict(DebugWidth::Long, sug.span)
         )?;
-        if !sug.parents.is_empty() {
-            write!(f, " <")?;
-            for (i, p) in sug.parents.iter().enumerate() {
-                if i > 0 {
-                    write!(f, " ")?;
-                }
-                write!(f, "{}", p)?;
-            }
-            write!(f, ">")?;
-        }
         writeln!(f)?;
     }
 
@@ -358,42 +296,10 @@ fn debug_suggest2_medium<C: Code>(
     sug_vec: &Vec<&Suggest<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
-    let mut prefix: Vec<Vec<C>> = Vec::new();
-
     for sug in sug_vec {
         indent(f, ind)?;
         write!(f, "{:20}", sug.code)?;
 
-        let (suffix, sigil) = loop {
-            if let Some(last) = prefix.last() {
-                match sug.parents.strip_prefix(last.as_slice()) {
-                    None => {
-                        match prefix.pop() {
-                            None => {
-                                prefix.push(sug.parents.clone());
-                                break (sug.parents.as_slice(), "<<");
-                            }
-                            Some(_) => {}
-                        };
-                    }
-                    Some(suffix) => {
-                        prefix.push(sug.parents.clone());
-                        break (suffix, "++");
-                    }
-                }
-            } else {
-                prefix.push(sug.parents.clone());
-                break (sug.parents.as_slice(), "<<");
-            }
-        };
-
-        write!(f, " {} ", sigil)?;
-        for (i, p) in suffix.iter().enumerate() {
-            if i > 0 {
-                write!(f, " ")?;
-            }
-            write!(f, "{}", p)?;
-        }
         writeln!(f)?;
     }
 
@@ -412,16 +318,6 @@ fn debug_suggest2_short<C: Code>(
             sug.code,
             restrict(DebugWidth::Short, sug.span)
         )?;
-        if !sug.parents.is_empty() {
-            write!(f, " <")?;
-            for (i, p) in sug.parents.iter().enumerate() {
-                if i > 0 {
-                    write!(f, " ")?;
-                }
-                write!(f, "{}", p)?;
-            }
-            write!(f, ">")?;
-        }
     }
 
     Ok(())

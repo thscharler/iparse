@@ -188,17 +188,12 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     }
 
     fn add_expect(&mut self, code: C, span: Span<'s>) {
-        let parent = self.parent_vec().clone();
         self.track_expect_single(Usage::Track, code, span);
         self.expect
             .last_mut()
             .expect("Vec<Expect> is empty")
             .list
-            .push(Expect {
-                code,
-                span,
-                parents: parent,
-            })
+            .push(Expect { code, span })
     }
 }
 
@@ -219,16 +214,11 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     }
 
     fn add_suggest(&mut self, code: C, span: Span<'s>) {
-        let parent = self.parent_vec().clone();
         self.suggest
             .last_mut()
             .expect("Vec<Suggest> is empty")
             .list
-            .push(Suggest {
-                code,
-                span,
-                parents: parent,
-            })
+            .push(Suggest { code, span })
     }
 
     fn append_suggest(&mut self, mut suggest: Vec<Suggest<'s, C>>) {
@@ -322,11 +312,7 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
             self.track.push(Track::Expect(ExpectTrack {
                 func: self.func(),
                 usage,
-                list: vec![Expect {
-                    code,
-                    span,
-                    parents: vec![],
-                }],
+                list: vec![Expect { code, span }],
                 parents: parent,
             }));
         }

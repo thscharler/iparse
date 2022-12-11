@@ -61,7 +61,7 @@ impl<'s, C: Code> ParserError<'s, C> {
             hints: vec![Hints::Suggest(Suggest {
                 code,
                 span,
-                parents: vec![],
+                // parents: vec![],
             })],
         }
     }
@@ -123,15 +123,46 @@ impl<'s, C: Code> ParserError<'s, C> {
         false
     }
 
-    /// Was this one of the expected errors, and is in the call stack of parent?
+    /// Find two consecutive expect values.
     pub fn is_expected2(&self, code: C, parent: C) -> bool {
-        for exp in &self.hints {
-            if let Hints::Expect(exp) = exp {
-                if exp.code == code {
-                    for par in &exp.parents {
-                        if *par == parent {
-                            return true;
-                        }
+        let mut it = self
+            .hints
+            .iter()
+            .filter_map(|v| match v {
+                Hints::Nom(_) => None,
+                Hints::Suggest(_) => None,
+                Hints::Expect(e) => Some(e),
+            })
+            .rev()
+            .peekable();
+
+        // if this code is ever replaced it will be pushed after the
+        // code on the vec. so this will be the parent and the last
+        // code on the vec will be the code in question.
+        if self.code == parent {
+            if let Some(nexp) = it.peek() {
+                if nexp.code == code {
+                    return true;
+                }
+            }
+        }
+
+        let mut it = self
+            .hints
+            .iter()
+            .filter_map(|v| match v {
+                Hints::Nom(_) => None,
+                Hints::Suggest(_) => None,
+                Hints::Expect(e) => Some(e),
+            })
+            .rev()
+            .peekable();
+
+        while let Some(exp) = it.next() {
+            if exp.code == parent {
+                if let Some(nexp) = it.peek() {
+                    if nexp.code == code {
+                        return true;
                     }
                 }
             }
@@ -157,11 +188,7 @@ impl<'s, C: Code> ParserError<'s, C> {
 
     /// Adds some expect values.
     pub fn add_expect(&mut self, code: C, span: Span<'s>) {
-        self.hints.push(Hints::Expect(Expect {
-            code,
-            span,
-            parents: Vec::new(),
-        }))
+        self.hints.push(Hints::Expect(Expect { code, span }))
     }
 
     /// Adds some expect values.
@@ -173,11 +200,7 @@ impl<'s, C: Code> ParserError<'s, C> {
 
     /// Adds some suggest value.
     pub fn add_suggest(&mut self, code: C, span: Span<'s>) {
-        self.hints.push(Hints::Suggest(Suggest {
-            code,
-            span,
-            parents: Vec::new(),
-        }))
+        self.hints.push(Hints::Suggest(Suggest { code, span }))
     }
 
     /// Adds some suggest values.
@@ -462,8 +485,6 @@ pub struct Suggest<'s, C> {
     pub code: C,
     /// Span
     pub span: Span<'s>,
-    /// Parser call stack.
-    pub parents: Vec<C>,
 }
 
 impl<'s, C> Suggest<'s, C> {
@@ -545,8 +566,6 @@ pub struct Expect<'s, C> {
     pub code: C,
     /// Span.
     pub span: Span<'s>,
-    /// Parser call stack.
-    pub parents: Vec<C>,
 }
 
 impl<'s, C> Expect<'s, C> {
