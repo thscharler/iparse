@@ -502,7 +502,7 @@ where
                     println!(
                         "FAIL: {:?} is not an expected token. {:?}",
                         code,
-                        e.expect()
+                        e.expect_as_ref()
                     );
                     self.flag_fail();
                 }
@@ -527,7 +527,7 @@ where
                     println!(
                         "FAIL: {:?} is not an expected token. {:?}",
                         code,
-                        e.expect()
+                        e.expect_as_ref()
                     );
                     self.flag_fail();
                 }

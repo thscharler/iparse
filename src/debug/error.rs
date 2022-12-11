@@ -55,13 +55,13 @@ fn debug_parse_of_error_short<'s, C: Code>(
         }
     }
 
-    let expect = err.expect();
+    let expect = err.expect_as_ref();
     if !expect.is_empty() {
         write!(f, " expect=")?;
         debug_expect2_short(f, &expect, 1)?;
     }
 
-    let suggest = err.suggest();
+    let suggest = err.suggest_as_ref();
     if !suggest.is_empty() {
         write!(f, " suggest=")?;
         debug_suggest2_short(f, &suggest, 1)?;
@@ -95,7 +95,7 @@ fn debug_parse_of_error_medium<'s, C: Code>(
         }
     }
 
-    let expect = err.expect();
+    let expect = err.expect_as_ref();
     if !expect.is_empty() {
         let mut sorted = expect.clone();
         sorted.reverse();
@@ -132,7 +132,7 @@ fn debug_parse_of_error_medium<'s, C: Code>(
         }
     }
 
-    let suggest = err.suggest();
+    let suggest = err.suggest_as_ref();
     if !suggest.is_empty() {
         let mut sorted = suggest.clone();
         sorted.reverse();
@@ -192,7 +192,7 @@ fn debug_parse_of_error_long<'s, C: Code>(
         }
     }
 
-    let expect = err.expect();
+    let expect = err.expect_as_ref();
     if !expect.is_empty() {
         let mut sorted = expect.clone();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
@@ -201,7 +201,7 @@ fn debug_parse_of_error_long<'s, C: Code>(
         debug_expect2_long(f, &sorted, 1)?;
     }
 
-    let suggest = err.suggest();
+    let suggest = err.suggest_as_ref();
     if !suggest.is_empty() {
         writeln!(f, "suggest=")?;
         debug_suggest2_long(f, &suggest, 1)?;

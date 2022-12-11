@@ -140,6 +140,7 @@ impl<'s, C: Code> ParserError<'s, C> {
         ParserError::new(C::PARSE_INCOMPLETE, span)
     }
 
+    /// Return any nom error codes.
     pub fn nom(&self) -> Vec<&Nom<'s>> {
         self.hints
             .iter()
@@ -150,12 +151,14 @@ impl<'s, C: Code> ParserError<'s, C> {
             .collect()
     }
 
+    /// Adds some expect values.
     pub fn append_expect(&mut self, exp: Vec<Expect<'s, C>>) {
         for exp in exp.into_iter() {
             self.hints.push(Hints::Expect(exp));
         }
     }
 
+    /// Adds some suggest value.
     pub fn add_suggest(&mut self, code: C, span: Span<'s>) {
         self.hints.push(Hints::Suggest(Suggest {
             code,
@@ -164,13 +167,20 @@ impl<'s, C: Code> ParserError<'s, C> {
         }))
     }
 
+    /// Adds some suggest values.
     pub fn append_suggest(&mut self, sug: Vec<Suggest<'s, C>>) {
         for sug in sug.into_iter() {
             self.hints.push(Hints::Suggest(sug));
         }
     }
 
-    pub fn expect(&self) -> Vec<&Expect<'s, C>> {
+    /// Extracts all the collected expect and suggest values.
+    pub fn to_results(&mut self) -> (Vec<Expect<'s, C>>, Vec<Suggest<'s, C>>) {
+        (self.to_expect(), self.to_suggest())
+    }
+
+    /// Returns the collected expect values.
+    pub fn expect_as_ref(&self) -> Vec<&Expect<'s, C>> {
         self.hints
             .iter()
             .filter_map(|v| match v {
@@ -180,17 +190,47 @@ impl<'s, C: Code> ParserError<'s, C> {
             .collect()
     }
 
+    /// Extracts the collected expect values.
+    pub fn to_expect(&mut self) -> Vec<Expect<'s, C>> {
+        let mut res = Vec::new();
+
+        let mut found: Vec<_> = self
+            .hints
+            .iter()
+            .enumerate()
+            .filter_map(|(i, v)| {
+                if matches!(v, Hints::Expect(_)) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        found.reverse();
+
+        for i in found {
+            match self.hints.remove(i) {
+                Hints::Expect(v) => res.push(v),
+                Hints::Nom(_) => unreachable!(),
+                Hints::Suggest(_) => unreachable!(),
+            }
+        }
+
+        res
+    }
+
     /// Get Expect grouped by offset into the string, starting with max first.
     pub fn expect_grouped_by_offset(&self) -> Vec<(usize, Vec<&Expect<'s, C>>)> {
-        Expect::group_by_offset(self.expect())
+        Expect::group_by_offset(self.expect_as_ref())
     }
 
     /// Get Expect grouped by offset into the string, starting with max first.
     pub fn expect_grouped_by_line(&self) -> Vec<(u32, Vec<&Expect<'s, C>>)> {
-        Expect::group_by_line(self.expect())
+        Expect::group_by_line(self.expect_as_ref())
     }
 
-    pub fn suggest(&self) -> Vec<&Suggest<'s, C>> {
+    /// Extracts the collected suggest values.
+    pub fn suggest_as_ref(&self) -> Vec<&Suggest<'s, C>> {
         self.hints
             .iter()
             .filter_map(|v| match v {
@@ -200,14 +240,43 @@ impl<'s, C: Code> ParserError<'s, C> {
             .collect()
     }
 
+    /// Extracts the collected expect values.
+    pub fn to_suggest(&mut self) -> Vec<Suggest<'s, C>> {
+        let mut res = Vec::new();
+
+        let mut found: Vec<_> = self
+            .hints
+            .iter()
+            .enumerate()
+            .filter_map(|(i, v)| {
+                if matches!(v, Hints::Suggest(_)) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        found.reverse();
+
+        for i in found {
+            match self.hints.remove(i) {
+                Hints::Suggest(v) => res.push(v),
+                Hints::Nom(_) => unreachable!(),
+                Hints::Expect(_) => unreachable!(),
+            }
+        }
+
+        res
+    }
+
     /// Get Suggest grouped by offset into the string, starting with max first.
     pub fn suggest_grouped_by_offset(&self) -> Vec<(usize, Vec<&Suggest<'s, C>>)> {
-        Suggest::group_by_offset(self.suggest())
+        Suggest::group_by_offset(self.suggest_as_ref())
     }
 
     /// Get Suggest grouped by offset into the string, starting with max first.
     pub fn suggest_grouped_by_line(&self) -> Vec<(u32, Vec<&Suggest<'s, C>>)> {
-        Suggest::group_by_line(self.suggest())
+        Suggest::group_by_line(self.suggest_as_ref())
     }
 }
 
@@ -215,7 +284,7 @@ impl<'s, C: Code> Display for ParserError<'s, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} expects ", self.code)?;
 
-        let expect = self.expect();
+        let expect = self.expect_as_ref();
         for (i, exp) in expect.iter().enumerate() {
             if i > 0 {
                 write!(f, " ")?;

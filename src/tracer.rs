@@ -2,9 +2,9 @@ use crate::debug::tracer::debug_tracer;
 use crate::error::{DebugWidth, Expect, Hints, ParserError, Suggest};
 use crate::{Code, FilterFn, ParserResult, Span, Tracer};
 use std::borrow::Cow;
-use std::fmt;
 use std::fmt::{Debug, Display};
 use std::marker::PhantomData;
+use std::{fmt, mem};
 
 /// Tracing and error collection.
 pub struct CTracer<'s, C: Code, const TRACK: bool = true> {
@@ -13,7 +13,9 @@ pub struct CTracer<'s, C: Code, const TRACK: bool = true> {
 
     /// Collected tracks.
     pub(crate) track: Vec<Track<'s, C>>,
+    /// Result data.
     pub(crate) suggest: Vec<SuggestTrack<'s, C>>,
+    /// Result data.
     pub(crate) expect: Vec<ExpectTrack<'s, C>>,
 }
 
@@ -143,6 +145,24 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     ) -> fmt::Result {
         debug_tracer(out, w, self, filter)
     }
+
+    pub fn to_results(&mut self) -> (Vec<Expect<'s, C>>, Vec<Suggest<'s, C>>) {
+        (self.to_expect(), self.to_suggest())
+    }
+
+    pub fn to_expect(&mut self) -> Vec<Expect<'s, C>> {
+        mem::replace(&mut self.expect, Vec::new())
+            .into_iter()
+            .flat_map(|v| v.list.into_iter())
+            .collect()
+    }
+
+    pub fn to_suggest(&mut self) -> Vec<Suggest<'s, C>> {
+        mem::replace(&mut self.suggest, Vec::new())
+            .into_iter()
+            .flat_map(|v| v.list.into_iter())
+            .collect()
+    }
 }
 
 // expect
@@ -159,11 +179,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
 
     fn pop_expect(&mut self) -> ExpectTrack<'s, C> {
         self.expect.pop().expect("Vec<Expect> is empty")
-    }
-
-    // todo: refcell is very annoying. see that tracer can live without.
-    pub fn to_expect(&self) -> Vec<&Expect<'s, C>> {
-        self.expect.iter().flat_map(|v| v.list.iter()).collect()
     }
 
     fn add_expect(&mut self, code: C, span: Span<'s>) {
@@ -194,11 +209,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
 
     fn pop_suggest(&mut self) -> SuggestTrack<'s, C> {
         self.suggest.pop().expect("Vec<Suggest> is empty")
-    }
-
-    // todo: refcell is very annoying. see that tracer can live without.
-    pub fn to_suggest(&self) -> Vec<&Suggest<'s, C>> {
-        self.suggest.iter().flat_map(|v| v.list.iter()).collect()
     }
 
     fn add_suggest(&mut self, code: C, span: Span<'s>) {
