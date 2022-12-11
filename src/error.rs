@@ -215,6 +215,7 @@ impl<'s, C: Code> ParserError<'s, C> {
                 Hints::Suggest(_) => unreachable!(),
             }
         }
+        res.reverse();
 
         res
     }
@@ -265,6 +266,7 @@ impl<'s, C: Code> ParserError<'s, C> {
                 Hints::Expect(_) => unreachable!(),
             }
         }
+        res.reverse();
 
         res
     }
