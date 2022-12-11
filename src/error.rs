@@ -80,7 +80,11 @@ impl<'s, C: Code> ParserError<'s, C> {
     }
 
     /// Convert to a new error code.
+    /// If the old one differs, it is added to the expect list.
     pub fn into_code(mut self, code: C) -> Self {
+        if self.code != code {
+            self.add_expect(self.code, self.span);
+        }
         self.code = code;
         self
     }
@@ -149,6 +153,15 @@ impl<'s, C: Code> ParserError<'s, C> {
                 _ => None,
             })
             .collect()
+    }
+
+    /// Adds some expect values.
+    pub fn add_expect(&mut self, code: C, span: Span<'s>) {
+        self.hints.push(Hints::Expect(Expect {
+            code,
+            span,
+            parents: Vec::new(),
+        }))
     }
 
     /// Adds some expect values.

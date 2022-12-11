@@ -29,15 +29,15 @@ pub type TokenFn<'s, O, C> = fn(Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 /// Signature of a parser function for Test.
 pub type ParserFn<'s, O, C, const TRACK: bool> =
-    fn(&'_ CTracer<'s, C, TRACK>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
+    fn(&'_ mut CTracer<'s, C, TRACK>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 /// Signature of a parser function for Test.
 pub type RParserFn<'s, O, C> =
-    fn(&'_ RTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
+    fn(&'_ mut RTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 /// Signature of a parser function for Test.
 pub type NoParserFn<'s, O, C> =
-    fn(&'_ NoTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
+    fn(&'_ mut NoTracer<'s, C>, Span<'s>) -> ParserResult<'s, C, (Span<'s>, O)>;
 
 /// Test runner.
 pub struct Test<P, I, O, E>
@@ -181,10 +181,10 @@ pub fn test_parse<'a, 's, V: Debug, C: Code>(
     fn_test: ParserFn<'s, V, C, true>,
 ) -> Test<TestTracer<'a, 's, C, true>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
     let span = Span::new(span);
-    let trace: CTracer<C, true> = CTracer::new();
 
+    let mut trace: CTracer<C, true> = CTracer::new();
     let now = Instant::now();
-    let result = fn_test(&trace, span);
+    let result = fn_test(&mut trace, span);
     let elapsed = now.elapsed();
 
     Test {
@@ -206,12 +206,13 @@ pub fn test_parse_false<'a, 's, V: Debug, C: Code>(
 ) -> Test<TestTracer<'a, 's, C, false>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
     let span = Span::new(span);
 
-    let trace: CTracer<C, false> = CTracer::new();
-
+    let mut trace: CTracer<C, false> = CTracer::new();
     let now = Instant::now();
-    let _ = fn_test(&trace, span);
+    let _ = fn_test(&mut trace, span);
     let elapsed = now.elapsed();
-    let result = fn_test(&trace, span);
+
+    let mut trace: CTracer<C, false> = CTracer::new();
+    let result = fn_test(&mut trace, span);
 
     Test {
         x: TestTracer {
@@ -235,12 +236,14 @@ pub fn test_rparse<'a, 's, V: Debug, C: Code>(
     fn_test: RParserFn<'s, V, C>,
 ) -> Test<TestRTracer<'s, C>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
     let span = Span::new(span);
-    let trace = RTracer::new();
 
+    let mut trace = RTracer::new();
     let now = Instant::now();
-    let _ = fn_test(&trace, span);
+    let _ = fn_test(&mut trace, span);
     let elapsed = now.elapsed();
-    let result = fn_test(&trace, span);
+
+    let mut trace = RTracer::new();
+    let result = fn_test(&mut trace, span);
 
     Test {
         x: TestRTracer { trace },
@@ -261,12 +264,14 @@ pub fn test_noparse<'a, 's, V: Debug, C: Code>(
     fn_test: NoParserFn<'s, V, C>,
 ) -> Test<TestNoTracer<'s, C>, Span<'s>, (Span<'s>, V), ParserError<'s, C>> {
     let span = Span::new(span);
-    let trace = NoTracer::new();
 
+    let mut trace = NoTracer::new();
     let now = Instant::now();
-    let _ = fn_test(&trace, span);
+    let _ = fn_test(&mut trace, span);
     let elapsed = now.elapsed();
-    let result = fn_test(&trace, span);
+
+    let mut trace = NoTracer::new();
+    let result = fn_test(&mut trace, span);
 
     Test {
         x: TestNoTracer {
@@ -703,7 +708,7 @@ fn trace<'s, O, C, E, const TRACK: bool>(
 
     impl<'a, 's, C: Code, const TRACK: bool> Debug for TracerDebug<'a, 's, C, TRACK> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            self.trace.write(f, DebugWidth::Medium, self.track_filter)
+            self.trace.write(f, DebugWidth::Long, self.track_filter)
         }
     }
 

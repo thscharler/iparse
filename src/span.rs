@@ -12,7 +12,7 @@ use std::str::from_utf8_unchecked;
 
 /// # Safety
 ///  See span_union for details.
-pub unsafe fn span_union_opt<'a>(span0: Option<Span<'a>>, span1: Span<'a>) -> Span<'a> {
+pub fn span_union_opt<'a>(span0: Option<Span<'a>>, span1: Span<'a>) -> Span<'a> {
     match span0 {
         None => span1,
         Some(span0) => span_union(span0, span1),
