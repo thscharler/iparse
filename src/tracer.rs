@@ -105,12 +105,18 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
         // Freshly created error needs to be recorded before we overwrite the code.
         if !err.tracing {
             err.tracing = true;
+            // ??? do we really need this anymore. now the code is no longer overwritten,
+            // so it ought not be necessary to build up expects.
+            // should be at the users digression by using stash.
+            // and for mapping external errors it may be better to
+            // let the user handle that too. ???
+
             // special codes are not very usefull in this position.
-            if !err.code.is_special() {
-                self.add_expect(err.code, err.span);
-            } else {
-                self.add_expect(self.func(), err.span);
-            }
+            // if !err.code.is_special() {
+            //     self.add_expect(err.code, err.span);
+            // } else {
+            //     self.add_expect(self.func(), err.span);
+            // }
         }
 
         // when backtracking we always replace the current error code.
@@ -183,6 +189,7 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
 
     fn add_expect(&mut self, code: C, span: Span<'s>) {
         let parent = self.parent_vec().clone();
+        self.track_expect_single(Usage::Track, code, span);
         self.expect
             .last_mut()
             .expect("Vec<Expect> is empty")
@@ -306,6 +313,22 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
                     parents: parent,
                 }));
             }
+        }
+    }
+
+    fn track_expect_single(&mut self, usage: Usage, code: C, span: Span<'s>) {
+        if TRACK {
+            let parent = self.parent_vec().clone();
+            self.track.push(Track::Expect(ExpectTrack {
+                func: self.func(),
+                usage,
+                list: vec![Expect {
+                    code,
+                    span,
+                    parents: vec![],
+                }],
+                parents: parent,
+            }));
         }
     }
 

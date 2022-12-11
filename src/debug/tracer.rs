@@ -102,11 +102,11 @@ fn debug_enter<C: Code>(
 ) -> fmt::Result {
     match w {
         DebugWidth::Short | DebugWidth::Medium => {
-            write!(f, "{}: parse \"{}\"", v.func, restrict(w, v.span))
+            write!(f, "{}: enter with \"{}\"", v.func, restrict(w, v.span))
         }
         DebugWidth::Long => write!(
             f,
-            "{}: parse \"{}\" <<{:?}",
+            "{}: enter with \"{}\" <<{:?}",
             v.func,
             restrict(w, v.span),
             v.parents
@@ -121,12 +121,12 @@ fn debug_step<C: Code>(
 ) -> fmt::Result {
     match w {
         DebugWidth::Short | DebugWidth::Medium => {
-            write!(f, "{}: {} \"{}\"", v.func, v.step, restrict(w, v.span))
+            write!(f, "{}: step {} \"{}\"", v.func, v.step, restrict(w, v.span))
         }
         DebugWidth::Long => {
             write!(
                 f,
-                "{}: {} \"{}\" <<{:?}",
+                "{}: step {} \"{}\" <<{:?}",
                 v.func,
                 v.step,
                 restrict(w, v.span),
@@ -142,8 +142,8 @@ fn debug_debug<C: Code>(
     v: &DebugTrack<'_, C>,
 ) -> fmt::Result {
     match w {
-        DebugWidth::Short | DebugWidth::Medium => write!(f, "{}: {}", v.func, v.dbg),
-        DebugWidth::Long => write!(f, "{}: {} <<{:?}", v.func, v.dbg, v.parents),
+        DebugWidth::Short | DebugWidth::Medium => write!(f, "{}: debug {}", v.func, v.dbg),
+        DebugWidth::Long => write!(f, "{}: debug {} <<{:?}", v.func, v.dbg, v.parents),
     }
 }
 
@@ -177,13 +177,13 @@ fn debug_ok<C: Code>(f: &mut impl fmt::Write, w: DebugWidth, v: &OkTrack<'_, C>)
             if !v.span.is_empty() {
                 write!(
                     f,
-                    "{}: -> [ {}, '{}' ]",
+                    "{}: ok -> [ {}, '{}' ]",
                     v.func,
                     restrict(w, v.span),
                     restrict(w, v.rest)
                 )?;
             } else {
-                write!(f, "{}: -> no match", v.func)?;
+                write!(f, "{}: ok -> no match", v.func)?;
             }
         }
     }
@@ -192,8 +192,8 @@ fn debug_ok<C: Code>(f: &mut impl fmt::Write, w: DebugWidth, v: &OkTrack<'_, C>)
 
 fn debug_err<C: Code>(f: &mut impl fmt::Write, w: DebugWidth, v: &ErrTrack<'_, C>) -> fmt::Result {
     match w {
-        DebugWidth::Short | DebugWidth::Medium => write!(f, "{}: {} ", v.func, v.err),
-        DebugWidth::Long => write!(f, "{}: {} <<{:?}", v.func, v.err, v.parents),
+        DebugWidth::Short | DebugWidth::Medium => write!(f, "{}: err {} ", v.func, v.err),
+        DebugWidth::Long => write!(f, "{}: err {} <<{:?}", v.func, v.err, v.parents),
     }
 }
 
@@ -204,7 +204,7 @@ fn debug_exit<C: Code>(
 ) -> fmt::Result {
     match w {
         DebugWidth::Short | DebugWidth::Medium | DebugWidth::Long => {
-            write!(f, "return {}: ", v.func)
+            write!(f, "{}: exit", v.func)
         }
     }
 }
