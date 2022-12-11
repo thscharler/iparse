@@ -18,23 +18,23 @@ impl<'s, C: Code> Tracer<'s, C> for NoTracer<'s, C> {
     }
 
     /// Enter a parser function. Absolutely necessary for the rest.
-    fn enter(&self, _func: C, _span: Span<'s>) {}
+    fn enter(&mut self, _func: C, _span: Span<'s>) {}
 
     /// Keep track of steps in a complicated parser.
-    fn step(&self, _step: &'static str, _span: Span<'s>) {}
+    fn step(&mut self, _step: &'static str, _span: Span<'s>) {}
 
     /// Some detailed debug information.
-    fn debug<T: Into<String>>(&self, _step: T) {}
+    fn debug<T: Into<String>>(&mut self, _step: T) {}
 
     /// Adds a suggestion for the current stack frame.
-    fn suggest(&self, _suggest: C, _span: Span<'s>) {}
+    fn suggest(&mut self, _suggest: C, _span: Span<'s>) {}
 
     /// Keep track of this error.
-    fn stash(&self, _err: ParserError<'s, C>) {}
+    fn stash(&mut self, _err: ParserError<'s, C>) {}
 
     /// Write a track for an ok result.
     fn ok<'t, T>(
-        &'t self,
+        &'t mut self,
         rest: Span<'s>,
         _span: Span<'s>,
         val: T,
@@ -43,7 +43,7 @@ impl<'s, C: Code> Tracer<'s, C> for NoTracer<'s, C> {
     }
 
     /// Write a track for an error.
-    fn err<'t, T>(&'t self, err: ParserError<'s, C>) -> ParserResult<'s, C, T> {
+    fn err<'t, T>(&'t mut self, err: ParserError<'s, C>) -> ParserResult<'s, C, T> {
         // Freshly created error.
         // if !err.tracing {
         //     err.tracing = true;

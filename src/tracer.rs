@@ -2,7 +2,6 @@ use crate::debug::tracer::debug_tracer;
 use crate::error::{DebugWidth, Expect, Hints, ParserError, Suggest};
 use crate::{Code, FilterFn, ParserResult, Span, Tracer};
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::fmt;
 use std::fmt::{Debug, Display};
 use std::marker::PhantomData;
@@ -10,27 +9,27 @@ use std::marker::PhantomData;
 /// Tracing and error collection.
 pub struct CTracer<'s, C: Code, const TRACK: bool = true> {
     /// Function call stack.
-    pub(crate) func: RefCell<Vec<C>>,
+    pub(crate) func: Vec<C>,
 
     /// Collected tracks.
-    pub(crate) track: RefCell<Vec<Track<'s, C>>>,
-    pub(crate) suggest: RefCell<Vec<SuggestTrack<'s, C>>>,
-    pub(crate) expect: RefCell<Vec<ExpectTrack<'s, C>>>,
+    pub(crate) track: Vec<Track<'s, C>>,
+    pub(crate) suggest: Vec<SuggestTrack<'s, C>>,
+    pub(crate) expect: Vec<ExpectTrack<'s, C>>,
 }
 
 impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
     /// New one.
     fn new() -> Self {
         Self {
-            func: RefCell::new(Vec::new()),
-            track: RefCell::new(Vec::new()),
-            suggest: RefCell::new(Vec::new()),
-            expect: RefCell::new(Vec::new()),
+            func: Vec::new(),
+            track: Vec::new(),
+            suggest: Vec::new(),
+            expect: Vec::new(),
         }
     }
 
     /// Enter a parser function. Absolutely necessary for the rest.
-    fn enter(&self, func: C, span: Span<'s>) {
+    fn enter(&mut self, func: C, span: Span<'s>) {
         self.push_func(func);
         self.push_suggest(func);
         self.push_expect(func);
@@ -39,28 +38,26 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
     }
 
     /// Keep track of steps in a complicated parser.
-    fn step(&self, step: &'static str, span: Span<'s>) {
+    fn step(&mut self, step: &'static str, span: Span<'s>) {
         self.track_step(step, span);
     }
 
     /// Some detailed debug information.
-    fn debug<T: Into<String>>(&self, step: T) {
+    fn debug<T: Into<String>>(&mut self, step: T) {
         self.track_debug(step.into());
     }
 
     /// Adds a suggestion for the current stack frame.
-    fn suggest(&self, suggest: C, span: Span<'s>) {
+    fn suggest(&mut self, suggest: C, span: Span<'s>) {
         self.add_suggest(suggest, span);
     }
 
     /// Keep track of this error.
-    fn stash(&self, err: ParserError<'s, C>) {
+    fn stash(&mut self, err: ParserError<'s, C>) {
         self.add_expect(err.code, err.span);
 
-        let mut expect = self.expect.borrow_mut();
-        let expect_vec = &mut expect.last_mut().expect("Vec<Expect> is empty").list;
-        let mut suggest = self.suggest.borrow_mut();
-        let suggest_vec = &mut suggest.last_mut().expect("Vec<Suggest> is empty").list;
+        let expect_vec = &mut self.expect.last_mut().expect("Vec<Expect> is empty").list;
+        let suggest_vec = &mut self.suggest.last_mut().expect("Vec<Suggest> is empty").list;
 
         for hint in err.hints.into_iter() {
             match hint {
@@ -77,7 +74,7 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
 
     /// Write a track for an ok result.
     fn ok<'t, T>(
-        &'t self,
+        &'t mut self,
         rest: Span<'s>,
         span: Span<'s>,
         val: T,
@@ -89,10 +86,10 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
         let suggest = self.pop_suggest();
         // Keep suggests, sort them out later.
         // Drop at the toplevel if no error occurs?
-        if !self.suggest.borrow().is_empty() {
+        if !self.suggest.is_empty() {
             self.append_suggest(suggest.list);
         } else {
-            self.suggest.borrow_mut().push(suggest);
+            self.suggest.push(suggest);
         }
 
         self.track_exit();
@@ -102,7 +99,7 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
     }
 
     /// Write a track for an error.
-    fn err<'t, T>(&'t self, mut err: ParserError<'s, C>) -> ParserResult<'s, C, T> {
+    fn err<'t, T>(&'t mut self, mut err: ParserError<'s, C>) -> ParserResult<'s, C, T> {
         // Freshly created error needs to be recorded before we overwrite the code.
         if !err.tracing {
             err.tracing = true;
@@ -150,94 +147,75 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
 
 // expect
 impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
-    fn push_expect(&self, func: C) {
-        self.expect.borrow_mut().push(ExpectTrack {
+    fn push_expect(&mut self, func: C) {
+        let parent = self.parent_vec().clone();
+        self.expect.push(ExpectTrack {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: self.parent_vec(),
+            parents: parent,
         })
     }
 
-    fn pop_expect(&self) -> ExpectTrack<'s, C> {
-        self.expect
-            .borrow_mut()
-            .pop()
-            .expect("Vec<Expect> is empty")
+    fn pop_expect(&mut self) -> ExpectTrack<'s, C> {
+        self.expect.pop().expect("Vec<Expect> is empty")
     }
 
     // todo: refcell is very annoying. see that tracer can live without.
-    pub fn to_expect(&self) -> Vec<Expect<'s, C>> {
-        let vec = self.expect.replace(Vec::new());
-
-        let mut result = Vec::new();
-        for mut v in vec.into_iter() {
-            result.append(&mut v.list);
-        }
-
-        result
+    pub fn to_expect(&self) -> Vec<&Expect<'s, C>> {
+        self.expect.iter().flat_map(|v| v.list.iter()).collect()
     }
 
-    fn add_expect(&self, code: C, span: Span<'s>) {
+    fn add_expect(&mut self, code: C, span: Span<'s>) {
+        let parent = self.parent_vec().clone();
         self.expect
-            .borrow_mut()
             .last_mut()
             .expect("Vec<Expect> is empty")
             .list
             .push(Expect {
                 code,
                 span,
-                parents: self.parent_vec(),
+                parents: parent,
             })
     }
 }
 
 // suggest
 impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
-    fn push_suggest(&self, func: C) {
-        self.suggest.borrow_mut().push(SuggestTrack {
+    fn push_suggest(&mut self, func: C) {
+        let parent = self.parent_vec().clone();
+        self.suggest.push(SuggestTrack {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: self.parent_vec(),
+            parents: parent,
         })
     }
 
-    fn pop_suggest(&self) -> SuggestTrack<'s, C> {
-        self.suggest
-            .borrow_mut()
-            .pop()
-            .expect("Vec<Suggest> is empty")
+    fn pop_suggest(&mut self) -> SuggestTrack<'s, C> {
+        self.suggest.pop().expect("Vec<Suggest> is empty")
     }
 
     // todo: refcell is very annoying. see that tracer can live without.
-    pub fn to_suggest(&self) -> Vec<Suggest<'s, C>> {
-        let vec = self.suggest.replace(Vec::new());
-
-        let mut result = Vec::new();
-        for mut v in vec.into_iter() {
-            result.append(&mut v.list);
-        }
-
-        result
+    pub fn to_suggest(&self) -> Vec<&Suggest<'s, C>> {
+        self.suggest.iter().flat_map(|v| v.list.iter()).collect()
     }
 
-    fn add_suggest(&self, code: C, span: Span<'s>) {
+    fn add_suggest(&mut self, code: C, span: Span<'s>) {
+        let parent = self.parent_vec().clone();
         self.suggest
-            .borrow_mut()
             .last_mut()
             .expect("Vec<Suggest> is empty")
             .list
             .push(Suggest {
                 code,
                 span,
-                parents: self.parent_vec(),
+                parents: parent,
             })
     }
 
-    fn append_suggest(&self, mut suggest: Vec<Suggest<'s, C>>) {
+    fn append_suggest(&mut self, mut suggest: Vec<Suggest<'s, C>>) {
         self.suggest
-            .borrow_mut()
             .last_mut()
             .expect("Vec<Suggest> is empty")
             .list
@@ -248,116 +226,123 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
 // call frame tracking
 impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     // enter function
-    fn push_func(&self, func: C) {
-        self.func.borrow_mut().push(func);
+    fn push_func(&mut self, func: C) {
+        self.func.push(func);
     }
 
     // leave current function
-    fn pop_func(&self) {
-        self.func.borrow_mut().pop();
+    fn pop_func(&mut self) {
+        self.func.pop();
     }
 
     // current function
     fn func(&self) -> C {
         *self
             .func
-            .borrow()
             .last()
             .expect("Vec<FnCode> is empty. forgot to trace.enter()")
     }
 
-    fn parent_vec(&self) -> Vec<C> {
-        self.func.borrow().clone()
+    fn parent_vec(&self) -> &Vec<C> {
+        &self.func
     }
 }
 
 // basic tracking
 impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
-    fn track_enter(&self, span: Span<'s>) {
+    fn track_enter(&mut self, span: Span<'s>) {
         if TRACK {
-            self.track.borrow_mut().push(Track::Enter(EnterTrack {
+            let parent = self.parent_vec().clone();
+            self.track.push(Track::Enter(EnterTrack {
                 func: self.func(),
                 span,
-                parents: self.parent_vec(),
+                parents: parent,
             }));
         }
     }
 
-    fn track_step(&self, step: &'static str, span: Span<'s>) {
+    fn track_step(&mut self, step: &'static str, span: Span<'s>) {
         if TRACK {
-            self.track.borrow_mut().push(Track::Step(StepTrack {
+            let parent = self.parent_vec().clone();
+            self.track.push(Track::Step(StepTrack {
                 func: self.func(),
                 step,
                 span,
-                parents: self.parent_vec(),
+                parents: parent,
             }));
         }
     }
 
-    fn track_debug(&self, dbg: String) {
+    fn track_debug(&mut self, dbg: String) {
         if TRACK {
-            self.track.borrow_mut().push(Track::Debug(DebugTrack {
+            let parent = self.parent_vec().clone();
+            self.track.push(Track::Debug(DebugTrack {
                 func: self.func(),
                 dbg,
-                parents: self.parent_vec(),
+                parents: parent,
                 _phantom: Default::default(),
             }));
         }
     }
 
-    fn track_suggest(&self, usage: Usage, suggest: Cow<Vec<Suggest<'s, C>>>) {
+    fn track_suggest(&mut self, usage: Usage, suggest: Cow<Vec<Suggest<'s, C>>>) {
         if TRACK {
             if !suggest.is_empty() {
-                self.track.borrow_mut().push(Track::Suggest(SuggestTrack {
+                let parent = self.parent_vec().clone();
+                self.track.push(Track::Suggest(SuggestTrack {
                     func: self.func(),
                     usage,
                     list: suggest.into_owned(),
-                    parents: self.parent_vec(),
+                    parents: parent,
                 }));
             }
         }
     }
 
-    fn track_expect(&self, usage: Usage, expect: Cow<Vec<Expect<'s, C>>>) {
+    fn track_expect(&mut self, usage: Usage, expect: Cow<Vec<Expect<'s, C>>>) {
         if TRACK {
             if !expect.is_empty() {
-                self.track.borrow_mut().push(Track::Expect(ExpectTrack {
+                let parent = self.parent_vec().clone();
+                self.track.push(Track::Expect(ExpectTrack {
                     func: self.func(),
                     usage,
                     list: expect.into_owned(),
-                    parents: self.parent_vec(),
+                    parents: parent,
                 }));
             }
         }
     }
 
-    fn track_ok(&self, rest: Span<'s>, span: Span<'s>) {
+    fn track_ok(&mut self, rest: Span<'s>, span: Span<'s>) {
         if TRACK {
-            self.track.borrow_mut().push(Track::Ok(OkTrack {
+            let parent = self.parent_vec().clone();
+            self.track.push(Track::Ok(OkTrack {
                 func: self.func(),
                 span,
                 rest,
-                parents: self.parent_vec(),
+                parents: parent,
             }));
         }
     }
 
-    fn track_error(&self, err: &ParserError<'s, C>) {
+    fn track_error(&mut self, err: &ParserError<'s, C>) {
         if TRACK {
-            self.track.borrow_mut().push(Track::Err(ErrTrack {
+            let parent = self.parent_vec().clone();
+            self.track.push(Track::Err(ErrTrack {
                 func: self.func(),
                 span: err.span,
                 err: err.to_string(),
-                parents: self.parent_vec(),
+                parents: parent,
             }));
         }
     }
 
-    fn track_exit(&self) {
+    fn track_exit(&mut self) {
         if TRACK {
-            self.track.borrow_mut().push(Track::Exit(ExitTrack {
+            let parent = self.parent_vec().clone();
+            self.track.push(Track::Exit(ExitTrack {
                 func: self.func(),
-                parents: self.parent_vec(),
+                parents: parent,
                 _phantom: Default::default(),
             }));
         }

@@ -79,7 +79,7 @@ pub trait Parser<'s, O, C: Code> {
 
     /// Parses the expression.
     fn parse<'t>(
-        trace: &'t impl Tracer<'s, C>,
+        trace: &'t mut impl Tracer<'s, C>,
         rest: Span<'s>,
     ) -> ParserResult<'s, C, (Span<'s>, O)>;
 }
@@ -97,7 +97,7 @@ pub trait ConfParser<'s, O, C: Code> {
     /// Parses the expression.
     fn parse<'t>(
         &self,
-        trace: &'t impl Tracer<'s, C>,
+        trace: &'t mut impl Tracer<'s, C>,
         rest: Span<'s>,
     ) -> ParserResult<'s, C, (Span<'s>, O)>;
 }
@@ -192,30 +192,30 @@ pub trait Tracer<'s, C: Code> {
     fn new() -> Self;
 
     /// Enter a parser function. Absolutely necessary for the rest.
-    fn enter(&self, func: C, span: Span<'s>);
+    fn enter(&mut self, func: C, span: Span<'s>);
 
     /// Keep track of steps in a complicated parser.
-    fn step(&self, step: &'static str, span: Span<'s>);
+    fn step(&mut self, step: &'static str, span: Span<'s>);
 
     /// Some detailed debug information.
-    fn debug<T: Into<String>>(&self, step: T);
+    fn debug<T: Into<String>>(&mut self, step: T);
 
     /// Adds a suggestion for the current stack frame.
-    fn suggest(&self, suggest: C, span: Span<'s>);
+    fn suggest(&mut self, suggest: C, span: Span<'s>);
 
     /// Keep track of this error.
-    fn stash(&self, err: error::ParserError<'s, C>);
+    fn stash(&mut self, err: ParserError<'s, C>);
 
     /// Write a track for an ok result.
     fn ok<T>(
-        &'_ self,
+        &'_ mut self,
         rest: Span<'s>,
         span: Span<'s>,
         val: T,
     ) -> ParserResult<'s, C, (Span<'s>, T)>;
 
     /// Write a track for an error.
-    fn err<T>(&'_ self, err: ParserError<'s, C>) -> ParserResult<'s, C, T>;
+    fn err<T>(&'_ mut self, err: ParserError<'s, C>) -> ParserResult<'s, C, T>;
 }
 
 // TrackParseResult ------------------------------------------------------
@@ -227,24 +227,24 @@ pub trait TrackParseResult<'s, 't, C: Code> {
 
     /// Translates the error code and adds the standard expect value.
     /// Then tracks the error and marks the current function as finished.
-    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result;
+    fn track(self, trace: &'t mut impl Tracer<'s, C>) -> Self::Result;
 
     /// Translates the error code and adds the standard expect value.
     /// Then tracks the error and marks the current function as finished.
-    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result;
+    fn track_as(self, trace: &'t mut impl Tracer<'s, C>, code: C) -> Self::Result;
 }
 
 impl<'s, 't, O, C: Code> TrackParseResult<'s, 't, C> for ParserResult<'s, C, O> {
     type Result = Self;
 
-    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
+    fn track(self, trace: &'t mut impl Tracer<'s, C>) -> Self::Result {
         match self {
             Ok(_) => self,
             Err(e) => trace.err(e),
         }
     }
 
-    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result {
+    fn track_as(self, trace: &'t mut impl Tracer<'s, C>, code: C) -> Self::Result {
         match self {
             Ok(_) => self,
             Err(e) => trace.err(e.into_code(code)),
@@ -257,14 +257,14 @@ impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
 {
     type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;
 
-    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
+    fn track(self, trace: &'t mut impl Tracer<'s, C>) -> Self::Result {
         match self {
             Ok(v) => Ok(v),
             Err(e) => trace.err(e.into()),
         }
     }
 
-    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result {
+    fn track_as(self, trace: &'t mut impl Tracer<'s, C>, code: C) -> Self::Result {
         match self {
             Ok(v) => Ok(v),
             Err(e) => {
@@ -280,14 +280,14 @@ impl<'s, 't, C: Code> TrackParseResult<'s, 't, C>
 {
     type Result = Result<(Span<'s>, Span<'s>), ParserError<'s, C>>;
 
-    fn track(self, trace: &'t impl Tracer<'s, C>) -> Self::Result {
+    fn track(self, trace: &'t mut impl Tracer<'s, C>) -> Self::Result {
         match self {
             Ok(v) => Ok(v),
             Err(e) => trace.err(e.into()),
         }
     }
 
-    fn track_as(self, trace: &'t impl Tracer<'s, C>, code: C) -> Self::Result {
+    fn track_as(self, trace: &'t mut impl Tracer<'s, C>, code: C) -> Self::Result {
         match self {
             Ok(v) => Ok(v),
             Err(e) => {
