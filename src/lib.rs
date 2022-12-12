@@ -203,6 +203,9 @@ pub trait Tracer<'s, C: Code> {
     /// Adds a suggestion for the current stack frame.
     fn suggest(&mut self, suggest: C, span: Span<'s>);
 
+    /// Adds a expectation for the current stack frame.
+    fn expect(&mut self, expect: C, span: Span<'s>);
+
     /// Keep track of this error.
     fn stash(&mut self, err: ParserError<'s, C>);
 

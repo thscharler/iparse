@@ -53,6 +53,10 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
         self.add_suggest(suggest, span);
     }
 
+    fn expect(&mut self, expect: C, span: Span<'s>) {
+        self.add_expect(expect, span);
+    }
+
     /// Keep track of this error.
     fn stash(&mut self, err: ParserError<'s, C>) {
         self.add_expect(err.code, err.span);

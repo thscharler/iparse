@@ -47,6 +47,10 @@ impl<'s, C: Code> Tracer<'s, C> for RTracer<'s, C> {
         self.add_suggest(suggest, span);
     }
 
+    fn expect(&mut self, expect: C, span: Span<'s>) {
+        self.add_expect(expect, span);
+    }
+
     /// Keep track of this error.
     fn stash(&mut self, err: ParserError<'s, C>) {
         self.add_expect(err.code, err.span);
@@ -220,14 +224,6 @@ impl<'s, C: Code> RTracer<'s, C> {
     // leave current function
     fn pop_func(&mut self) {
         self.func.pop();
-    }
-
-    // current function
-    fn func(&self) -> C {
-        *self
-            .func
-            .last()
-            .expect("Vec<FnCode> is empty. forgot to trace.enter()")
     }
 }
 

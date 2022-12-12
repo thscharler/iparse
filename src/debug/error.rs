@@ -37,14 +37,14 @@ fn debug_parse_of_error_short<'s, C: Code>(
 ) -> fmt::Result {
     write!(
         f,
-        "ParserError {} \"{}\"",
+        "ParserError [{}] for \"{}\"",
         err.code,
         restrict(DebugWidth::Short, err.span)
     )?;
 
     let nom = err.nom();
     if !nom.is_empty() {
-        write!(f, " nom=")?;
+        write!(f, " nom errs ")?;
         for n in &nom {
             write!(
                 f,
@@ -57,13 +57,13 @@ fn debug_parse_of_error_short<'s, C: Code>(
 
     let expect = err.expect_as_ref();
     if !expect.is_empty() {
-        write!(f, " expect=")?;
+        write!(f, " expected ")?;
         debug_expect2_short(f, &expect, 1)?;
     }
 
     let suggest = err.suggest_as_ref();
     if !suggest.is_empty() {
-        write!(f, " suggest=")?;
+        write!(f, " suggesting ")?;
         debug_suggest2_short(f, &suggest, 1)?;
     }
 
@@ -260,7 +260,7 @@ fn debug_expect2_short<C: Code>(
     for exp in exp_vec {
         write!(
             f,
-            "{}:\"{}\"",
+            "{}:\"{}\" ",
             exp.code,
             restrict(DebugWidth::Short, exp.span)
         )?;
@@ -314,7 +314,7 @@ fn debug_suggest2_short<C: Code>(
     for sug in sug_vec {
         write!(
             f,
-            "{}:\"{}\"",
+            "{}:\"{}\" ",
             sug.code,
             restrict(DebugWidth::Short, sug.span)
         )?;

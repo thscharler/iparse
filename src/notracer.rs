@@ -29,6 +29,8 @@ impl<'s, C: Code> Tracer<'s, C> for NoTracer<'s, C> {
     /// Adds a suggestion for the current stack frame.
     fn suggest(&mut self, _suggest: C, _span: Span<'s>) {}
 
+    fn expect(&mut self, _expect: C, _span: Span<'s>) {}
+
     /// Keep track of this error.
     fn stash(&mut self, _err: ParserError<'s, C>) {}
 
