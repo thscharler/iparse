@@ -2,12 +2,13 @@ use crate::debug::rtracer::debug_rtracer;
 use crate::error::{DebugWidth, Expect, Hints, ParserError, Suggest};
 use crate::{Code, ParserResult, Span, Tracer};
 use std::borrow::Cow;
-use std::fmt;
 use std::fmt::{Debug, Display};
+use std::{fmt, mem};
 
 /// Tracing and error collection.
 pub struct RTracer<'s, C: Code> {
     pub(crate) func: Vec<C>,
+
     pub(crate) suggest: Vec<SuggestTrack<'s, C>>,
     pub(crate) expect: Vec<ExpectTrack<'s, C>>,
 }
@@ -82,7 +83,8 @@ impl<'s, C: Code> Tracer<'s, C> for RTracer<'s, C> {
         // Drop at the toplevel if no error occurs?
         if !self.suggest.is_empty() {
             self.append_suggest(suggest.list);
-            //self.track_suggest(Usage::Drop, suggest.list);
+        } else {
+            self.suggest.push(suggest);
         }
 
         self.track_exit();
@@ -96,17 +98,22 @@ impl<'s, C: Code> Tracer<'s, C> for RTracer<'s, C> {
         // Freshly created error needs to be recorded before we overwrite the code.
         if !err.tracing {
             err.tracing = true;
+            // ??? do we really need this anymore. now the code is no longer overwritten,
+            // so it ought not be necessary to build up expects.
+            // should be at the users digression by using stash.
+            // and for mapping external errors it may be better to
+            // let the user handle that too. ???
+
             // special codes are not very usefull in this position.
-            if !err.code.is_special() {
-                // todo: should be the job of the concrete parser
-                self.add_expect(err.code, err.span);
-            } else {
-                self.add_expect(self.func(), err.span);
-            }
+            // if err.code.is_special() {
+            //     self.add_expect(self.func(), err.span);
+            // } else {
+            //     self.add_expect(err.code, err.span);
+            // }
         }
 
         // when backtracking we always replace the current error code.
-        // todo: this is somewhat useless.
+        // conclusion: this is useless.
         // err.code = self.func();
 
         let exp = self.pop_expect();
@@ -132,6 +139,20 @@ impl<'s, C: Code> RTracer<'s, C> {
     pub fn write(&self, out: &mut impl fmt::Write, w: DebugWidth) -> fmt::Result {
         debug_rtracer(out, w, self)
     }
+
+    pub fn to_expect(&mut self) -> Vec<Expect<'s, C>> {
+        mem::replace(&mut self.expect, Vec::new())
+            .into_iter()
+            .flat_map(|v| v.list.into_iter())
+            .collect()
+    }
+
+    pub fn to_suggest(&mut self) -> Vec<Suggest<'s, C>> {
+        mem::replace(&mut self.suggest, Vec::new())
+            .into_iter()
+            .flat_map(|v| v.list.into_iter())
+            .collect()
+    }
 }
 
 // expect
@@ -149,6 +170,7 @@ impl<'s, C: Code> RTracer<'s, C> {
     }
 
     fn add_expect(&mut self, code: C, span: Span<'s>) {
+        self.track_expect_single(Usage::Track, code, span);
         self.expect
             .last_mut()
             .expect("Vec<Expect> is empty")

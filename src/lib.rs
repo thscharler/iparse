@@ -102,6 +102,28 @@ pub trait ConfParser<'s, O, C: Code> {
     ) -> ParserResult<'s, C, (Span<'s>, O)>;
 }
 
+// This impl is mainly to ensure compatibility of the two traits.
+impl<'s, O, C: Code> ConfParser<'s, O, C> for T
+where
+    T: Parser<'s, O, C>,
+{
+    fn id(&self) -> C {
+        T::id()
+    }
+
+    fn lah(&self, span: Span<'s>) -> bool {
+        T::lah(span)
+    }
+
+    fn parse<'t>(
+        &self,
+        trace: &'t mut impl Tracer<'s, C>,
+        rest: Span<'s>,
+    ) -> ParserResult<'s, C, (Span<'s>, O)> {
+        T::parse(trace, rest)
+    }
+}
+
 /// Treats the result of a parser as optional.
 ///
 /// The exact return value is defined in the impl, but should include some Option<..>.

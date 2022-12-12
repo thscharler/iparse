@@ -7,7 +7,16 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="project files" />
+    <list default="true" id="a7a5ba32-1671-4c10-8cfe-4a9832dbe290" name="Changes" comment="project files">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/notracer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/notracer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/rtracer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/rtracer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracer.rs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -47,7 +56,7 @@
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "last_opened_file_path": "C:/Users/stommy/Documents/StableProjects/elcom",
+    "last_opened_file_path": "C:/Users/stommy/Documents/StableProjects/planung4",
     "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.0",
@@ -60,7 +69,7 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\iparse\src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Release">
+  <component name="RunManager" selected="Cargo.Examples">
     <configuration name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build " />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -97,6 +106,23 @@
     </configuration>
     <configuration name="Doc" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="doc" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Examples" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="run --example example1" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -164,6 +190,7 @@
       </method>
     </configuration>
     <list>
+      <item itemvalue="Cargo.Examples" />
       <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Release" />

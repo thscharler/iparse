@@ -6,29 +6,6 @@ use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 
-/// Combined error including the CTracer.
-/// Make your own if you need a different Tracer.
-pub struct TracerError<'s, C: Code, const TRACK: bool> {
-    pub parse: ParserError<'s, C>,
-    pub trace: CTracer<'s, C, TRACK>,
-}
-
-impl<'s, C: Code, const TRACK: bool> Debug for TracerError<'s, C, TRACK> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{}", self.parse)?;
-        Ok(())
-    }
-}
-
-impl<'s, C: Code, const TRACK: bool> Display for TracerError<'s, C, TRACK> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{:?}", self.parse)?;
-        Ok(())
-    }
-}
-
-impl<'s, C: Code, const TRACK: bool> Error for TracerError<'s, C, TRACK> {}
-
 /// Error for the Parser.
 pub struct ParserError<'s, C: Code> {
     /// Error code.
@@ -650,3 +627,26 @@ impl From<Option<usize>> for DebugWidth {
         }
     }
 }
+
+/// Combined error including the CTracer.
+/// Make your own if you need a different Tracer.
+pub struct TracerError<'s, C: Code, const TRACK: bool> {
+    pub parse: ParserError<'s, C>,
+    pub trace: CTracer<'s, C, TRACK>,
+}
+
+impl<'s, C: Code, const TRACK: bool> Debug for TracerError<'s, C, TRACK> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}", self.parse)?;
+        Ok(())
+    }
+}
+
+impl<'s, C: Code, const TRACK: bool> Display for TracerError<'s, C, TRACK> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{:?}", self.parse)?;
+        Ok(())
+    }
+}
+
+impl<'s, C: Code, const TRACK: bool> Error for TracerError<'s, C, TRACK> {}

@@ -13,9 +13,8 @@ pub struct CTracer<'s, C: Code, const TRACK: bool = true> {
 
     /// Collected tracks.
     pub(crate) track: Vec<Track<'s, C>>,
-    /// Result data.
+
     pub(crate) suggest: Vec<SuggestTrack<'s, C>>,
-    /// Result data.
     pub(crate) expect: Vec<ExpectTrack<'s, C>>,
 }
 
@@ -112,10 +111,10 @@ impl<'s, C: Code, const TRACK: bool> Tracer<'s, C> for CTracer<'s, C, TRACK> {
             // let the user handle that too. ???
 
             // special codes are not very usefull in this position.
-            // if !err.code.is_special() {
-            //     self.add_expect(err.code, err.span);
-            // } else {
+            // if err.code.is_special() {
             //     self.add_expect(self.func(), err.span);
+            // } else {
+            //     self.add_expect(err.code, err.span);
             // }
         }
 
@@ -174,12 +173,10 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
 // expect
 impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     fn push_expect(&mut self, func: C) {
-        let parent = self.parent_vec().clone();
         self.expect.push(ExpectTrack {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: parent,
         })
     }
 
@@ -200,12 +197,10 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
 // suggest
 impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     fn push_suggest(&mut self, func: C) {
-        let parent = self.parent_vec().clone();
         self.suggest.push(SuggestTrack {
             func,
             usage: Usage::Track,
             list: Vec::new(),
-            parents: parent,
         })
     }
 
@@ -248,10 +243,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
             .func
             .last()
             .expect("Vec<FnCode> is empty. forgot to trace.enter()")
-    }
-
-    fn parent_vec(&self) -> &Vec<C> {
-        &self.func
     }
 }
 
@@ -300,7 +291,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
                     func: self.func(),
                     usage,
                     list: suggest.into_owned(),
-                    parents: parent,
                 }));
             }
         }
@@ -313,7 +303,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
                 func: self.func(),
                 usage,
                 list: vec![Expect { code, span }],
-                parents: parent,
             }));
         }
     }
@@ -326,7 +315,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
                     func: self.func(),
                     usage,
                     list: expect.into_owned(),
-                    parents: parent,
                 }));
             }
         }
@@ -399,8 +387,6 @@ pub struct ExpectTrack<'s, C: Code> {
     pub usage: Usage,
     /// Collected Expect values.
     pub list: Vec<Expect<'s, C>>,
-    /// Parser call stack.
-    pub parents: Vec<C>,
 }
 
 /// One per stack frame.
@@ -411,8 +397,6 @@ pub struct SuggestTrack<'s, C: Code> {
     pub usage: Usage,
     /// Collected Suggest values.
     pub list: Vec<Suggest<'s, C>>,
-    /// Parser call stack.
-    pub parents: Vec<C>,
 }
 
 /// Track for entering a parser function.
@@ -441,7 +425,7 @@ pub struct StepTrack<'s, C> {
 pub struct DebugTrack<'s, C> {
     /// Function.
     pub func: C,
-    /// Debug info. TODO: Is the string necessary?
+    /// Debug info.
     pub dbg: String,
     /// Parser call stack.
     pub parents: Vec<C>,
@@ -517,8 +501,8 @@ impl<'s, C: Code> Track<'s, C> {
             Track::Enter(v) => &v.parents,
             Track::Step(v) => &v.parents,
             Track::Debug(v) => &v.parents,
-            Track::Expect(v) => &v.parents,
-            Track::Suggest(v) => &v.parents,
+            Track::Expect(v) => Vec::new(),
+            Track::Suggest(v) => Vec::new(),
             Track::Ok(v) => &v.parents,
             Track::Err(v) => &v.parents,
             Track::Exit(v) => &v.parents,

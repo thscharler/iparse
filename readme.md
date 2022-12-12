@@ -49,6 +49,11 @@ impl Display for ICode {
 pub type IParserResult<'s, O> = ParserResult<'s, ICode, (Span<'s>, O)>;
 pub type INomResult<'s> = ParserNomResult<'s, ICode>;
 ```
+Sometimes it's usefull to have an alias for the ParserError too.
+
+```rust
+pub type IParserError<'s> = ParserError<'s, ICode>;
+```
 
 4. Define the AST structs. There are no constraints from IParse.
 
@@ -94,6 +99,9 @@ The id() identifies the function in the call stack of the tracer. It acts as
 error code for the same function. For this to work call trace.enter() at the
 start of the function and trace.ok() or trace.err() at each exit point.
 
+There is a second trait ConfParser that takes self for every method.
+
+
 There is more later.
 
 ```rust
@@ -109,7 +117,7 @@ impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
    }
 
    fn parse<'t>(
-      trace: &'t impl Tracer<'s, ICode>,
+      trace: &'t mut impl Tracer<'s, ICode>,
       rest: Span<'s>,
    ) -> IParserResult<'s, TerminalA<'s>> {
       trace.enter(Self::id(), rest);
@@ -125,12 +133,12 @@ impl<'s> Parser<'s, TerminalA<'s>, ICode> for ParseTerminalA {
 ```
 
 5. To call the parser use any impl of Tracer. The standard today is CTracer.
-The const type argument states wether the actual tracking will be done or not.
+The const type argument states whether the actual tracking will be done or not.
 
 ```rust
 fn run_parser() -> IParserResult<'static, TerminalA<'static>> {
-   let trace: CTracer<_, true> = CTracer::new();
-   ParseTerminalA::parse(&trace, Span::new("A"))
+   let mut trace: CTracer<_, true> = CTracer::new();
+   ParseTerminalA::parse(&mut trace, Span::new("A"))
 }
 ```
 
@@ -147,12 +155,12 @@ When calling q() a report type is needed. These are
 * Timing - Output only the timings. 
 
 ```rust
-type R = Trace;
+const R: Trace = Trace;
 
 #[test]
 pub fn test_terminal_a() {
-    test_parse("A", ParseTerminalA::parse).okok().q::<R>();
-    test_parse("AA", ParseTerminalA::parse).errerr().q::<R>();
+   test_parse("A", ParseTerminalA::parse).okok().q(&R);
+   test_parse("AA", ParseTerminalA::parse).errerr().q(&R);
 }
  ```
 
@@ -185,7 +193,7 @@ impl<'s> Parser<'s, TerminalC<'s>, ICode> for ParseTerminalC {
    }
 
    fn parse<'t>(
-      trace: &'t impl Tracer<'s, ICode>,
+      trace: &'t mut impl Tracer<'s, ICode>,
       rest: Span<'s>,
    ) -> IParserResult<'s, TerminalC<'s>> {
       trace.enter(Self::id(), rest);
@@ -218,22 +226,22 @@ It has a second method track_as() that allows to change the error code.
 ```rust
 pub struct ParseNonTerminal1;
 
-impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for NonTerminal1<'s> {
-    fn id() -> ICode {
-        ICNonTerminal1
-    }
+impl<'s> Parser<'s, NonTerminal1<'s>, ICode> for ParseNonTerminal1 {
+   fn id() -> ICode {
+      ICNonTerminal1
+   }
 
-    fn parse<'t>(
-        trace: &'t impl Tracer<'s, ICode>,
-        rest: Span<'s>,
-    ) -> ParserResult<'s, NonTerminal1<'s>, ICode> {
-        let (rest, a) = ParseTerminalA::parse(trace, rest).track(trace)?;
-        let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
+   fn parse<'t>(
+      trace: &'t mut impl Tracer<'s, ICode>,
+      rest: Span<'s>,
+   ) -> IParserResult<'s, NonTerminal1<'s>> {
+      let (rest, a) = ParseTerminalA::parse(trace, rest).track(trace)?;
+      let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
 
-        let span = unsafe { span_union(a.span, b.span) };
+      let span = span_union(a.span, b.span);
 
-        trace.ok(span, rest, NonTerminal1 { a, b, span })
-    }
+      trace.ok(rest, span, NonTerminal1 { a, b, span })
+   }
 }
 ```
 
@@ -243,9 +251,9 @@ It is good to have the full span for non-terminals in the parser. There is no
 way to glue the spans together via nom, so there is span_union().
 
 ```rust
-# fn dummy() {
+fn sample() {
    let span = span_union(a.span, b.span);
-# }
+}
 ```
 
 ## Note 4
@@ -260,15 +268,17 @@ error. In the ok case everything is forgotten.
 ```rust
 pub struct ParseNonTerminal2;
 
-impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
+impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for ParseNonTerminal2 {
    fn id() -> ICode {
       ICNonTerminal1
    }
 
    fn parse<'t>(
-      trace: &'t impl Tracer<'s, ICode>,
+      trace: &'t mut impl Tracer<'s, ICode>,
       rest: Span<'s>,
-   ) -> ParserResult<'s, NonTerminal2<'s>, ICode> {
+   ) -> IParserResult<'s, NonTerminal2<'s>> {
+      trace.enter(Self::id(), rest);
+
       let (rest, a) = match ParseTerminalA::parse(trace, rest) {
          Ok((rest, a)) => (rest, Some(a)),
          Err(e) => {
@@ -278,16 +288,15 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
       };
 
       let (rest, b) = ParseTerminalB::parse(trace, rest).track(trace)?;
+      let (rest, c) = ParseTerminalC::parse(trace, rest).track(trace)?;
 
-      let span = unsafe {
-         if let Some(a) = a {
-            span_union(a.span, b.span)
-         } else {
-            b.span
-         }
+      let span = if let Some(a) = &a {
+         span_union(a.span, c.span)
+      } else {
+         c.span
       };
 
-      trace.ok(span, rest, NonTerminal2 { a, b, span })
+      trace.ok(rest, span, NonTerminal2 { a, b, c, span })
    }
 }
 ```
@@ -296,6 +305,31 @@ impl<'s> Parser<'s, NonTerminal2<'s>, ICode> for NonTerminal2<'s> {
 
 The trait ParseAsOptional allows to convert a Err(ParserError) to an 
 Ok(Option<T>). This is the default way to mark a subparser as optional.
+
+```rust
+pub struct ParseTerminalD;
+
+impl<'s> Parser<'s, TerminalD<'s>, ICode> for ParseTerminalD {
+    fn id() -> ICode {
+        ICTerminalD
+    }
+
+    fn parse<'t>(
+        trace: &'t mut impl Tracer<'s, ICode>,
+        rest: Span<'s>,
+    ) -> IParserResult<'s, TerminalD<'s>> {
+        trace.enter(Self::id(), rest);
+
+        let (rest, _) = nom_star_star(rest).optional().track(trace)?;
+        let (rest, tag) = nom_tag_kdnr(rest).track(trace)?;
+        let (rest, term) = token_nummer(rest).track(trace)?;
+        let (rest, _) = nom_star_star(rest).optional().track(trace)?;
+
+        let span = span_union(tag, term.span);
+        trace.ok(rest, span, TerminalD { term, span })
+    }
+}
+```
 
 ## Note 6
 
@@ -306,39 +340,39 @@ Looks solid to use a mut loop-variable but only modify it at the border.
 pub struct ParseNonTerminal3;
 
 impl<'s> Parser<'s, (), ICode> for ParseNonTerminal3 {
-    fn id() -> ICode {
-        ICNonTerminal3
-    }
+   fn id() -> ICode {
+      ICNonTerminal3
+   }
 
-    fn parse<'t>(trace: &'t impl Tracer<'s, ICode>, rest: Span<'s>) -> IParserResult<'s, ()> {
-        let mut loop_rest = rest;
-        loop {
-            let rest2 = loop_rest;
+   fn parse<'t>(trace: &'t mut impl Tracer<'s, ICode>, rest: Span<'s>) -> IParserResult<'s, ()> {
+      let mut loop_rest = rest;
+      loop {
+         let rest2 = loop_rest;
 
-            let (rest2, a) = ParseTerminalA::parse(trace, rest2).track(trace)?;
+         let (rest2, _a) = ParseTerminalA::parse(trace, rest2).track(trace)?;
 
-            let (rest2, b) = match ParseTerminalB::parse(trace, rest2) {
-                Ok((rest3, b)) => (rest3, Some(b)),
-                Err(e) => {
-                    trace.suggest(e.code, e.span);
-                    (rest2, None)
-                }
-            };
-
-            if rest2.is_empty() {
-                break;
+         let (rest2, _b) = match ParseTerminalB::parse(trace, rest2) {
+            Ok((rest3, b)) => (rest3, Some(b)),
+            Err(e) => {
+               trace.suggest(e.code, e.span);
+               (rest2, None)
             }
+         };
 
-            // endless loop
-            if loop_rest == rest2 {
-                return trace.err(ParserError::new(ICNonTerminal3, rest2));
-            }
+         if rest2.is_empty() {
+            break;
+         }
 
-            loop_rest = rest2;
-        }
+         // endless loop
+         if loop_rest == rest2 {
+            return trace.err(ParserError::new(ICNonTerminal3, rest2));
+         }
 
-        trace.ok(rest, rest.take(0), ())
-    }
+         loop_rest = rest2;
+      }
+
+      trace.ok(rest, rest.take(0), ())
+   }
 }
 ```
 
@@ -348,9 +382,12 @@ impl<'s> Parser<'s, (), ICode> for ParseNonTerminal3 {
 
 There are more conversion traits:
 * IntoParserResultAddCode
+* IntoParserResultAddSpan
 * IntoParserError
 
-The std::convert::Into is implemented for nom types to do a 
+* std::convert::From
+
+The std::convert::From is implemented for nom types to do a 
 default conversion into ParserError.
 
 ## Noteworthy 2

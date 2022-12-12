@@ -43,14 +43,11 @@ impl<'s, C: Code> Tracer<'s, C> for NoTracer<'s, C> {
     }
 
     /// Write a track for an error.
-    fn err<'t, T>(&'t mut self, err: ParserError<'s, C>) -> ParserResult<'s, C, T> {
+    fn err<'t, T>(&'t mut self, mut err: ParserError<'s, C>) -> ParserResult<'s, C, T> {
         // Freshly created error.
-        // if !err.tracing {
-        //     err.tracing = true;
-        // }
-
-        // when backtracking we always replace the current error code.
-        //err.code = self.func();
+        if !err.tracing {
+            err.tracing = true;
+        }
 
         Err(err)
     }
