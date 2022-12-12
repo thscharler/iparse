@@ -243,6 +243,8 @@ impl<'s, C: Code> RTracer<'s, C> {
 
     fn track_expect(&self, _usage: Usage, _expect: Cow<Vec<Expect<'s, C>>>) {}
 
+    fn track_expect_single(&mut self, _usage: Usage, _code: C, _span: Span<'s>) {}
+
     fn track_ok(&self, _rest: Span<'s>, _span: Span<'s>) {}
 
     fn track_error(&self, _err: &ParserError<'s, C>) {}

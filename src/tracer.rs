@@ -244,6 +244,10 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
             .last()
             .expect("Vec<FnCode> is empty. forgot to trace.enter()")
     }
+
+    fn parent_vec(&self) -> &Vec<C> {
+        &self.func
+    }
 }
 
 // basic tracking
@@ -286,7 +290,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     fn track_suggest(&mut self, usage: Usage, suggest: Cow<Vec<Suggest<'s, C>>>) {
         if TRACK {
             if !suggest.is_empty() {
-                let parent = self.parent_vec().clone();
                 self.track.push(Track::Suggest(SuggestTrack {
                     func: self.func(),
                     usage,
@@ -298,7 +301,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
 
     fn track_expect_single(&mut self, usage: Usage, code: C, span: Span<'s>) {
         if TRACK {
-            let parent = self.parent_vec().clone();
             self.track.push(Track::Expect(ExpectTrack {
                 func: self.func(),
                 usage,
@@ -310,7 +312,6 @@ impl<'s, C: Code, const TRACK: bool> CTracer<'s, C, TRACK> {
     fn track_expect(&mut self, usage: Usage, expect: Cow<Vec<Expect<'s, C>>>) {
         if TRACK {
             if !expect.is_empty() {
-                let parent = self.parent_vec().clone();
                 self.track.push(Track::Expect(ExpectTrack {
                     func: self.func(),
                     usage,
@@ -495,17 +496,17 @@ impl<'s, C: Code> Track<'s, C> {
         }
     }
 
-    /// Returns the parser call stack for each branch.
-    pub fn parents(&self) -> &Vec<C> {
-        match self {
-            Track::Enter(v) => &v.parents,
-            Track::Step(v) => &v.parents,
-            Track::Debug(v) => &v.parents,
-            Track::Expect(v) => Vec::new(),
-            Track::Suggest(v) => Vec::new(),
-            Track::Ok(v) => &v.parents,
-            Track::Err(v) => &v.parents,
-            Track::Exit(v) => &v.parents,
-        }
-    }
+    // /// Returns the parser call stack for each branch.
+    // pub fn parents(&self) -> &Vec<C> {
+    //     match self {
+    //         Track::Enter(v) => &v.parents,
+    //         Track::Step(v) => &v.parents,
+    //         Track::Debug(v) => &v.parents,
+    //         Track::Expect(v) => ,
+    //         Track::Suggest(v) => ,
+    //         Track::Ok(v) => &v.parents,
+    //         Track::Err(v) => &v.parents,
+    //         Track::Exit(v) => &v.parents,
+    //     }
+    // }
 }
